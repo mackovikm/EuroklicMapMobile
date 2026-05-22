@@ -103,6 +103,19 @@ public partial class MapPage : ContentPage
         await RefreshAll();
     }
 
+    private async void OnSearchCompleted(object? sender, EventArgs e)
+    {
+        _searchCts?.Cancel();
+        await RefreshAll();
+    }
+
+    private async void OnClearSearchClicked(object? sender, EventArgs e)
+    {
+        _searchCts?.Cancel();
+        _vm.SearchText = string.Empty;
+        await RefreshAll();
+    }
+
     // ── GPS ──────────────────────────────────────────────────────────────────
 
     private async void OnGpsClicked(object? sender, EventArgs e)

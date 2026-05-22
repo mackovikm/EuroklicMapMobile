@@ -17,23 +17,65 @@
                      Order="Primary" Priority="1" />
     </ContentPage.ToolbarItems>
 
-    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto">
+    <Grid RowDefinitions="Auto,Auto,*,Auto,Auto">
 
-        <!-- ── Řádek 0: Vyhledávání ────────────────────────────────────── -->
-        <SearchBar Grid.Row="0"
-                   x:Name="MainSearchBar"
-                   Placeholder="Hledat (název, popis nebo adresu)..."
-                   Text="{Binding SearchText}"
-                   TextChanged="OnSearchTextChanged"
-                   SearchButtonPressed="OnSearchButtonPressed"
-                   BackgroundColor="White"
-                   TextColor="#1A1A1A"
-                   PlaceholderColor="#9E9E9E"
-                   HeightRequest="40"
-                   MinimumHeightRequest="40" />
+        <!-- ── Řádek 0: Vyhledávání + tlačítko Hledat ───────────────────── -->
+        <Grid Grid.Row="0"
+              BackgroundColor="White"
+              ColumnDefinitions="*,Auto"
+              Padding="8,6,8,4"
+              ColumnSpacing="6">
 
-        <!-- ── Řádek 2: Horizontálně rolovatelné chipy typů ───────────── -->
-        <ScrollView Grid.Row="2"
+            <!-- Vstupní pole s tlačítkem ✕ -->
+            <Border Grid.Column="0"
+                    Stroke="#DEDEDE"
+                    StrokeThickness="1"
+                    BackgroundColor="#F5F5F5"
+                    HeightRequest="38"
+                    Padding="0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+                <Grid ColumnDefinitions="*,Auto">
+                    <Entry Grid.Column="0"
+                           x:Name="SearchEntry"
+                           Placeholder="Hledat (název, popis nebo adresu)..."
+                           PlaceholderColor="#9E9E9E"
+                           TextColor="#1A1A1A"
+                           Text="{Binding SearchText}"
+                           TextChanged="OnSearchTextChanged"
+                           ReturnType="Search"
+                           Completed="OnSearchCompleted"
+                           BackgroundColor="Transparent"
+                           VerticalOptions="Center"
+                           FontSize="13"
+                           Margin="10,0,0,0" />
+                    <Button Grid.Column="1"
+                            Text="✕"
+                            IsVisible="{Binding SearchText, Converter={StaticResource StringNotEmptyConverter}}"
+                            Clicked="OnClearSearchClicked"
+                            BackgroundColor="Transparent"
+                            TextColor="#9E9E9E"
+                            FontSize="13"
+                            WidthRequest="36"
+                            HeightRequest="38"
+                            Padding="0" />
+                </Grid>
+            </Border>
+
+            <!-- Tlačítko Hledat -->
+            <Button Grid.Column="1"
+                    Text="Hledat"
+                    Clicked="OnSearchButtonPressed"
+                    FontSize="13"
+                    HeightRequest="38"
+                    Padding="12,0"
+                    BackgroundColor="{StaticResource Primary}"
+                    TextColor="White" />
+        </Grid>
+
+        <!-- ── Řádek 1: Horizontálně rolovatelné chipy typů ───────────── -->
+        <ScrollView Grid.Row="1"
                     Orientation="Horizontal"
                     HorizontalScrollBarVisibility="Never"
                     BackgroundColor="#F0F4F8"
@@ -43,38 +85,14 @@
                                    Spacing="6" />
         </ScrollView>
 
-        <!-- ── Řádek 1: Tlačítka akcí ────────────────────────────────── -->
-        <Grid Grid.Row="1"
-              BackgroundColor="White"
-              Padding="8,5,8,6"
-              ColumnDefinitions="*,*"
-              ColumnSpacing="6">
-            <Button Grid.Column="0"
-                    Text="Hledat"
-                    Clicked="OnSearchButtonPressed"
-                    FontSize="13"
-                    HeightRequest="34"
-                    Padding="8,0"
-                    BackgroundColor="{StaticResource Primary}"
-                    TextColor="White" />
-            <Button Grid.Column="1"
-                    Text="Obnovit"
-                    Command="{Binding RefreshCommand}"
-                    FontSize="13"
-                    HeightRequest="34"
-                    Padding="8,0"
-                    BackgroundColor="{StaticResource Primary}"
-                    TextColor="White" />
-        </Grid>
-
-        <!-- ── Řádek 3: Mapa ──────────────────────────────────────────── -->
+        <!-- ── Řádek 2: Mapa ──────────────────────────────────────────── -->
         <WebView x:Name="MapWebView"
-                 Grid.Row="3"
+                 Grid.Row="2"
                  Navigating="OnMapNavigating"
                  Navigated="OnMapNavigated" />
 
         <!-- Spinner načítání (překrývá mapu) -->
-        <Grid Grid.Row="3"
+        <Grid Grid.Row="2"
               IsVisible="{Binding IsBusy}"
               BackgroundColor="#99FFFFFF"
               ZIndex="10">
@@ -91,8 +109,8 @@
             </VerticalStackLayout>
         </Grid>
 
-        <!-- ── Řádek 5: Stavový řádek ─────────────────────────────────── -->
-        <Grid Grid.Row="5"
+        <!-- ── Řádek 4: Stavový řádek ─────────────────────────────────── -->
+        <Grid Grid.Row="4"
               BackgroundColor="{StaticResource Primary}"
               Padding="12,5">
             <Grid.ColumnDefinitions>
@@ -110,8 +128,8 @@
                    VerticalOptions="Center" />
         </Grid>
 
-        <!-- ── Řádek 4: Spodní panel „Body a legenda" ──────────────────── -->
-        <Grid Grid.Row="4" RowDefinitions="Auto,Auto" BackgroundColor="White">
+        <!-- ── Řádek 3: Spodní panel „Body a legenda" ──────────────────── -->
+        <Grid Grid.Row="3" RowDefinitions="Auto,Auto" BackgroundColor="White">
 
             <!-- Záhlaví panelu (klikací) -->
             <Grid Grid.Row="0" BackgroundColor="#F0F4F8" Padding="12,9">
