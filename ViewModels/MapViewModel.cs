@@ -11,7 +11,9 @@ public class MapViewModel : BaseViewModel
 
     private List<EuroklicPoint> _points = [];
     private List<EuroklicPoint> _filteredPoints = [];
+    private List<EuroklicPoint> _visiblePoints = [];
     private List<string> _availTypes = [];
+    private double? _boundsN, _boundsS, _boundsE, _boundsW;
     private string _searchText = string.Empty;
     private string? _selectedType;
     private string _pointCountText = string.Empty;
@@ -47,9 +49,13 @@ public class MapViewModel : BaseViewModel
     public List<string> AvailableTypes => _availTypes;
     public bool HasTypes => _availTypes.Count > 0;
     public List<EuroklicPoint> FilteredPoints => _filteredPoints;
+    public List<EuroklicPoint> VisiblePoints  => _visiblePoints;
 
     /// <summary>Pocet filtrovaných / celkem, napr. "12 / 4035".</summary>
     public string FilteredCountText => $"{_filteredPoints.Count} / {_points.Count}";
+
+    /// <summary>Pocet viditelných ve výřezu / celkem filtrovaných, napr. "8 / 4035".</summary>
+    public string VisibleCountText  => $"{_visiblePoints.Count} / {_filteredPoints.Count}";
 
     public event EventHandler? DataRefreshed;
     public event EventHandler? TypesLoaded;
@@ -100,6 +106,33 @@ public class MapViewModel : BaseViewModel
         _filteredPoints = result.ToList();
         OnPropertyChanged(nameof(FilteredPoints));
         OnPropertyChanged(nameof(FilteredCountText));
+        RefreshVisible();
+    }
+
+    /// <summary>
+    /// Aktualizuje hranice viditelného výřezu mapy a přepočítá VisiblePoints.
+    /// Volá se z View po každém moveend/zoomend z Leafletu.
+    /// </summary>
+    public void SetBounds(double north, double south, double east, double west)
+    {
+        _boundsN = north;
+        _boundsS = south;
+        _boundsE = east;
+        _boundsW = west;
+        RefreshVisible();
+    }
+
+    /// <summary>Přefiltruje _filteredPoints podle aktuálního výřezu mapy.</summary>
+    private void RefreshVisible()
+    {
+        _visiblePoints = _boundsN.HasValue
+            ? _filteredPoints.Where(p =>
+                p.Latitude  >= _boundsS!.Value && p.Latitude  <= _boundsN!.Value &&
+                p.Longitude >= _boundsW!.Value && p.Longitude <= _boundsE!.Value).ToList()
+            : _filteredPoints.ToList();
+
+        OnPropertyChanged(nameof(VisiblePoints));
+        OnPropertyChanged(nameof(VisibleCountText));
     }
 
     /// <summary>Vrátí JSON filtrovaných bodů pro Leaflet.</summary>

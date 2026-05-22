@@ -59,6 +59,7 @@
     }).addTo(map);
 
     var markersLayer = L.layerGroup().addTo(map);
+    var markersById  = {};   // id → Leaflet marker (pro focusPoint)
     var gpsMarker = null;
 
     /* ── Typy bodů – shodné s webovou aplikací (app.js ICON_TYPES) ── */
@@ -162,6 +163,7 @@
     /* ── loadPoints – volano z MAUI po nacteni/filtrovani dat ── */
     function loadPoints(jsonStr) {
       markersLayer.clearLayers();
+      markersById = {};
       var points;
       try { points = JSON.parse(jsonStr); } catch(e) { showEmpty(true); return; }
       if (!Array.isArray(points) || points.length === 0) { showEmpty(true); return; }
@@ -174,6 +176,8 @@
           .bindPopup(popup, { maxWidth: 280, autoPan: true })
           .addTo(markersLayer);
 
+        markersById[p.id] = marker;
+
         marker.on('click', function() {
           map.setView([p.latitude, p.longitude], 14, { animate: true, duration: 0.5 });
         });
@@ -182,10 +186,41 @@
       if (!window._gpsSet) {
         try {
           var bounds = markersLayer.getBounds();
-          if (bounds.isValid()) map.fitBounds(bounds, { padding: [40,40], maxZoom: 14 });
-        } catch(_) {}
+          if (bounds.isValid()) {
+            map.fitBounds(bounds, { padding: [40,40], maxZoom: 14 });
+            // moveend fires automaticky po animaci fitBounds
+          } else {
+            notifyBounds();
+          }
+        } catch(_) { notifyBounds(); }
+      } else {
+        // GPS je nastaven, mapa se nehybala → notifikuj ihned
+        notifyBounds();
       }
     }
+
+    /* ── focusPoint – volano z MAUI při kliknutí na položku seznamu ── */
+    function focusPoint(id) {
+      var marker = markersById[id];
+      if (!marker) return;
+      var ll = marker.getLatLng();
+      map.setView(ll, Math.max(map.getZoom(), 15), { animate: true, duration: 0.5 });
+      setTimeout(function() { marker.openPopup(); }, 400);
+    }
+
+    /* ── Notifikace hranic výřezu → MAUI seznam bodů ── */
+    function notifyBounds() {
+      if (!map) return;
+      var b = map.getBounds();
+      var url = 'maui://bounds?n=' + b.getNorth().toFixed(6)
+              + '&s=' + b.getSouth().toFixed(6)
+              + '&e=' + b.getEast().toFixed(6)
+              + '&w=' + b.getWest().toFixed(6);
+      try { window.location.href = url; } catch(_) {}
+    }
+
+    map.on('moveend', notifyBounds);
+    map.on('zoomend', notifyBounds);
 
     /* ── GPS: vystred mapu na uzivatelovu polohu ── */
     function centerOnGps(lat, lng) {

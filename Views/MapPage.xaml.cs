@@ -48,6 +48,25 @@ public partial class MapPage : ContentPage
     {
         if (!e.Url.StartsWith("maui://", StringComparison.OrdinalIgnoreCase)) return;
         e.Cancel = true;
+
+        // maui://bounds?n=...&s=...&e=...&w=...  → aktualizuj seznam viditelných bodů
+        if (e.Url.StartsWith("maui://bounds?", StringComparison.OrdinalIgnoreCase))
+        {
+            var query = e.Url["maui://bounds?".Length..];
+            var dict = query.Split('&')
+                .Select(part => part.Split('='))
+                .Where(kv => kv.Length == 2)
+                .ToDictionary(kv => kv[0], kv => kv[1]);
+
+            var ci = System.Globalization.CultureInfo.InvariantCulture;
+            if (double.TryParse(dict.GetValueOrDefault("n"), System.Globalization.NumberStyles.Float, ci, out var north) &&
+                double.TryParse(dict.GetValueOrDefault("s"), System.Globalization.NumberStyles.Float, ci, out var south) &&
+                double.TryParse(dict.GetValueOrDefault("e"), System.Globalization.NumberStyles.Float, ci, out var east)  &&
+                double.TryParse(dict.GetValueOrDefault("w"), System.Globalization.NumberStyles.Float, ci, out var west))
+            {
+                _vm.SetBounds(north, south, east, west);
+            }
+        }
     }
 
     private async void OnMapNavigated(object? sender, WebNavigatedEventArgs e)
@@ -179,6 +198,22 @@ public partial class MapPage : ContentPage
             btn.TextColor          = isActive ? ChipActiveText  : ChipInactiveText;
             border.Stroke          = new SolidColorBrush(isActive ? ChipActiveBorder : ChipInactiveBorder);
         }
+    }
+
+    // ── Seznam bodů ─────────────────────────────────────────────────────────
+
+    private async void OnPointSelected(object? sender, SelectionChangedEventArgs e)
+    {
+        if (e.CurrentSelection.FirstOrDefault() is not EuroklicMapMobile.Models.EuroklicPoint point)
+            return;
+
+        // Odznačit výběr okamžitě (vizuální reset)
+        if (sender is CollectionView cv)
+            cv.SelectedItem = null;
+
+        // Zaměřit bod na mapě a otevřít jeho popup
+        await MainThread.InvokeOnMainThreadAsync(async () =>
+            await MapWebView.EvaluateJavaScriptAsync($"focusPoint({point.Id})"));
     }
 
     // ── Spodní panel ────────────────────────────────────────────────────────

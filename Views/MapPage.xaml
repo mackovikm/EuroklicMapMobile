@@ -99,7 +99,7 @@
                     <Label.FormattedText>
                         <FormattedString>
                             <Span Text="Legenda typů — seznam bodů  " />
-                            <Span Text="{Binding FilteredCountText}"
+                            <Span Text="{Binding VisibleCountText}"
                                   TextColor="{StaticResource Primary}"
                                   FontAttributes="Bold" />
                         </FormattedString>
@@ -114,10 +114,12 @@
 
             <!-- Seznam bodů (collapsible) -->
             <CollectionView Grid.Row="1"
-                            ItemsSource="{Binding FilteredPoints}"
+                            ItemsSource="{Binding VisiblePoints}"
                             IsVisible="{Binding IsPanelExpanded}"
                             HeightRequest="260"
-                            BackgroundColor="White">
+                            BackgroundColor="White"
+                            SelectionMode="Single"
+                            SelectionChanged="OnPointSelected">
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="models:EuroklicPoint">
                         <Grid Padding="10,8,12,8" ColumnDefinitions="36,10,*"
