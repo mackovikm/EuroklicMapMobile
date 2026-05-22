@@ -4,9 +4,12 @@
        xmlns:views="clr-namespace:EuroklicMapMobile.Views"
        x:Class="EuroklicMapMobile.AppShell"
        Shell.FlyoutBehavior="Disabled"
-       Title="EuroklicMap">
+       Shell.BackgroundColor="#1565C0"
+       Shell.ForegroundColor="White"
+       Shell.TitleColor="White"
+       Title="Euroklíč">
 
-    <ShellContent Title="Mapa"
+    <ShellContent Title="Euroklíč — mapa míst"
                   ContentTemplate="{DataTemplate views:MapPage}"
                   Route="MapPage" />
 

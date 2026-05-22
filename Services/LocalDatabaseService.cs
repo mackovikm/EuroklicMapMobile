@@ -57,12 +57,12 @@ public class LocalDatabaseService : ILocalDatabaseService
     public async Task<List<EuroklicPoint>> GetAllPointsAsync()
     {
         await InitAsync();
-        return await _db!.Table<EuroklicPoint>().ToListAsync();
+        return await _db!.Table<EuroklicPoint>().Where(w => !string.IsNullOrEmpty(w.Type)).ToListAsync();
     }
 
     public async Task<int> GetPointCountAsync()
     {
         await InitAsync();
-        return await _db!.Table<EuroklicPoint>().CountAsync();
+        return await _db!.Table<EuroklicPoint>().Where(w => !string.IsNullOrEmpty(w.Type)).CountAsync();
     }
 }

@@ -2,65 +2,155 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:EuroklicMapMobile.ViewModels"
+             xmlns:models="clr-namespace:EuroklicMapMobile.Models"
              x:Class="EuroklicMapMobile.Views.MapPage"
              x:DataType="vm:MapViewModel"
-             Title="EuroklicMap">
+             Title="Euroklíč — mapa míst"
+             BackgroundColor="White">
 
     <ContentPage.ToolbarItems>
-        <ToolbarItem Text="Obnovit"
-                     IconImageSource="ic_refresh.png"
+        <ToolbarItem IconImageSource="ic_gps.png"
+                     Clicked="OnGpsClicked"
+                     Order="Primary" Priority="0" />
+        <ToolbarItem IconImageSource="ic_refresh.png"
                      Command="{Binding RefreshCommand}"
-                     Order="Primary"
-                     Priority="0" />
+                     Order="Primary" Priority="1" />
     </ContentPage.ToolbarItems>
 
-    <Grid RowDefinitions="*, Auto">
+    <Grid RowDefinitions="Auto,Auto,*,Auto,Auto">
 
-        <!-- Mapa (Leaflet pres WebView) -->
+        <!-- ── Řádek 0: Vyhledávání ────────────────────────────────────── -->
+        <SearchBar Grid.Row="0"
+                   x:Name="SearchBar"
+                   Placeholder="Hledat (název, popis nebo adresu)..."
+                   Text="{Binding SearchText}"
+                   TextChanged="OnSearchTextChanged"
+                   SearchButtonPressed="OnSearchButtonPressed"
+                   BackgroundColor="White" />
+
+        <!-- ── Řádek 1: Horizontálně rolovatelné chipy typů ───────────── -->
+        <ScrollView Grid.Row="1"
+                    Orientation="Horizontal"
+                    HorizontalScrollBarVisibility="Never"
+                    BackgroundColor="#F0F4F8">
+            <HorizontalStackLayout x:Name="ChipsLayout"
+                                   Padding="8,6"
+                                   Spacing="6" />
+        </ScrollView>
+
+        <!-- ── Řádek 2: Mapa ──────────────────────────────────────────── -->
         <WebView x:Name="MapWebView"
-                 Grid.Row="0"
+                 Grid.Row="2"
+                 Navigating="OnMapNavigating"
                  Navigated="OnMapNavigated" />
 
-        <!-- Spodni stavovy pruh -->
-        <Grid Grid.Row="1"
-              BackgroundColor="{StaticResource Primary}"
-              Padding="12,6">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-
-            <Label Grid.Column="0"
-                   Text="{Binding StatusText}"
-                   TextColor="White"
-                   FontSize="12"
-                   VerticalOptions="Center"
-                   LineBreakMode="TailTruncation" />
-
-            <Label Grid.Column="1"
-                   Text="{Binding PointCountText}"
-                   TextColor="#B3E5FC"
-                   FontSize="12"
-                   FontAttributes="Bold"
-                   VerticalOptions="Center" />
-        </Grid>
-
-        <!-- Ukazatel nacitani -->
-        <Grid Grid.Row="0"
+        <!-- Spinner načítání (překrývá mapu) -->
+        <Grid Grid.Row="2"
               IsVisible="{Binding IsBusy}"
-              BackgroundColor="#80000000">
+              BackgroundColor="#99FFFFFF"
+              ZIndex="10">
             <VerticalStackLayout VerticalOptions="Center"
                                  HorizontalOptions="Center"
-                                 Spacing="12">
+                                 Spacing="14">
                 <ActivityIndicator IsRunning="True"
-                                   Color="White"
-                                   WidthRequest="48"
-                                   HeightRequest="48" />
+                                   Color="{StaticResource Primary}"
+                                   WidthRequest="48" HeightRequest="48" />
                 <Label Text="Stahuji data..."
-                       TextColor="White"
+                       TextColor="{StaticResource Primary}"
+                       FontAttributes="Bold"
                        HorizontalOptions="Center" />
             </VerticalStackLayout>
         </Grid>
 
+        <!-- ── Řádek 3: Stavový řádek ─────────────────────────────────── -->
+        <Grid Grid.Row="3"
+              BackgroundColor="{StaticResource Primary}"
+              Padding="12,5">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Label Grid.Column="0"
+                   Text="{Binding StatusText}"
+                   TextColor="White" FontSize="11"
+                   VerticalOptions="Center"
+                   LineBreakMode="TailTruncation" />
+            <Label Grid.Column="1"
+                   Text="{Binding PointCountText}"
+                   TextColor="#B3E5FC" FontSize="11" FontAttributes="Bold"
+                   VerticalOptions="Center" />
+        </Grid>
+
+        <!-- ── Řádek 4: Spodní panel „Body a legenda" ──────────────────── -->
+        <Grid Grid.Row="4" RowDefinitions="Auto,Auto" BackgroundColor="White">
+
+            <!-- Záhlaví panelu (klikací) -->
+            <Grid Grid.Row="0" BackgroundColor="#F0F4F8" Padding="12,9">
+                <Grid.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnTogglePanelTapped" />
+                </Grid.GestureRecognizers>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Label Grid.Column="0"
+                       FontSize="13" FontAttributes="Bold" TextColor="#1A1A2E"
+                       VerticalOptions="Center">
+                    <Label.FormattedText>
+                        <FormattedString>
+                            <Span Text="Legenda typů — seznam bodů  " />
+                            <Span Text="{Binding FilteredCountText}"
+                                  TextColor="{StaticResource Primary}"
+                                  FontAttributes="Bold" />
+                        </FormattedString>
+                    </Label.FormattedText>
+                </Label>
+                <Label x:Name="PanelArrow"
+                       Grid.Column="1"
+                       Text="▲" FontSize="14"
+                       TextColor="{StaticResource Primary}"
+                       VerticalOptions="Center" />
+            </Grid>
+
+            <!-- Seznam bodů (collapsible) -->
+            <CollectionView Grid.Row="1"
+                            ItemsSource="{Binding FilteredPoints}"
+                            IsVisible="{Binding IsPanelExpanded}"
+                            HeightRequest="260"
+                            BackgroundColor="White">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:EuroklicPoint">
+                        <Grid Padding="12,10" ColumnDefinitions="14,8,*"
+                              RowDefinitions="Auto,Auto,Auto">
+                            <!-- Barevná tečka -->
+                            <BoxView Grid.Column="0" Grid.RowSpan="3"
+                                     WidthRequest="10" HeightRequest="10" CornerRadius="5"
+                                     VerticalOptions="Start" Margin="0,4,0,0"
+                                     Color="{Binding Type, Converter={StaticResource TypeColorConverter}}" />
+                            <!-- Název -->
+                            <Label Grid.Column="2" Grid.Row="0"
+                                   Text="{Binding Name}"
+                                   FontAttributes="Bold" FontSize="14" TextColor="#1A1A1A"
+                                   LineBreakMode="TailTruncation" />
+                            <!-- Typ -->
+                            <Label Grid.Column="2" Grid.Row="1"
+                                   Text="{Binding Type, Converter={StaticResource TypeLabelConverter}}"
+                                   FontSize="11" TextColor="#777777"
+                                   CharacterSpacing="0.3" TextTransform="Uppercase" />
+                            <!-- Adresa -->
+                            <Label Grid.Column="2" Grid.Row="2"
+                                   Text="{Binding Address}"
+                                   FontSize="12" TextColor="#444444"
+                                   IsVisible="{Binding Address, Converter={StaticResource StringNotEmptyConverter}}"
+                                   LineBreakMode="TailTruncation" />
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="0" />
+                </CollectionView.ItemsLayout>
+            </CollectionView>
+
+        </Grid>
     </Grid>
 </ContentPage>

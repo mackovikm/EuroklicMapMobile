@@ -2,18 +2,19 @@ using EuroklicMapMobile.ViewModels;
 
 namespace EuroklicMapMobile.Views;
 
-/// <summary>
-/// Zobrazuje interaktivní Leaflet mapu v WebView.
-///
-/// Tok dat:
-///   1. OnAppearing → MapViewModel.InitializeAsync() načte lokální body + spustí sync na pozadí.
-///   2. OnMapNavigated → po načtení HTML stránky injektuje body do JavaScriptu.
-///   3. MapViewModel.DataRefreshed → při aktualizaci dat reinjeketuje body do mapy.
-/// </summary>
 public partial class MapPage : ContentPage
 {
     private readonly MapViewModel _vm;
     private bool _mapLoaded;
+    private CancellationTokenSource? _searchCts;
+
+    // Barvy chipů
+    private static readonly Color ChipActiveBg   = Color.FromArgb("#1565C0");
+    private static readonly Color ChipInactiveBg  = Color.FromArgb("#FFFFFF");
+    private static readonly Color ChipActiveText  = Color.FromArgb("#FFFFFF");
+    private static readonly Color ChipInactiveText = Color.FromArgb("#333333");
+    private static readonly Color ChipActiveBorder   = Color.FromArgb("#1565C0");
+    private static readonly Color ChipInactiveBorder  = Color.FromArgb("#BDBDBD");
 
     public MapPage(MapViewModel vm)
     {
@@ -21,17 +22,17 @@ public partial class MapPage : ContentPage
         _vm = vm;
         BindingContext = vm;
 
-        // Když se obnoví data ze serveru, aktualizuj mapu
-        vm.DataRefreshed += async (_, _) => await InjectPointsAsync();
+        vm.DataRefreshed += async (_, _) => await RefreshAll();
+        vm.TypesLoaded   += (_, _) => MainThread.BeginInvokeOnMainThread(RebuildChips);
     }
+
+    // ── Lifecycle ────────────────────────────────────────────────────────────
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-
         await _vm.InitializeAsync();
 
-        // Načti HTML mapu (jen poprvé nebo pokud WebView nemá zdroj)
         if (MapWebView.Source is null)
         {
             MapWebView.Source = new HtmlWebViewSource
@@ -41,30 +42,183 @@ public partial class MapPage : ContentPage
         }
     }
 
-    /// <summary>Voláno WebView po dokončení navigace (tj. po načtení HTML).</summary>
+    // ── WebView ──────────────────────────────────────────────────────────────
+
+    private void OnMapNavigating(object? sender, WebNavigatingEventArgs e)
+    {
+        if (!e.Url.StartsWith("maui://", StringComparison.OrdinalIgnoreCase)) return;
+        e.Cancel = true;
+    }
+
     private async void OnMapNavigated(object? sender, WebNavigatedEventArgs e)
     {
         if (e.Result != WebNavigationResult.Success) return;
         _mapLoaded = true;
-        await InjectPointsAsync();
+        await RefreshAll();
+        await TryCenterOnGpsAsync();
     }
 
-    /// <summary>Injektuje pole bodů do Leaflet mapy přes JavaScript funkci loadPoints().</summary>
-    private async Task InjectPointsAsync()
+    // ── Vyhledávání ──────────────────────────────────────────────────────────
+
+    private async void OnSearchTextChanged(object? sender, TextChangedEventArgs e)
+    {
+        _searchCts?.Cancel();
+        _searchCts = new CancellationTokenSource();
+        var token = _searchCts.Token;
+        try
+        {
+            await Task.Delay(400, token);
+            await RefreshAll();
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    private async void OnSearchButtonPressed(object? sender, EventArgs e)
+    {
+        _searchCts?.Cancel();
+        await RefreshAll();
+    }
+
+    // ── GPS ──────────────────────────────────────────────────────────────────
+
+    private async void OnGpsClicked(object? sender, EventArgs e)
+        => await TryCenterOnGpsAsync();
+
+    private async Task TryCenterOnGpsAsync()
+    {
+        try
+        {
+            var status = await Permissions.RequestAsync<Permissions.LocationWhenInUse>();
+            if (status != PermissionStatus.Granted) return;
+
+            var location = await Geolocation.Default.GetLocationAsync(new GeolocationRequest
+            {
+                DesiredAccuracy = GeolocationAccuracy.Medium,
+                Timeout = TimeSpan.FromSeconds(8)
+            });
+            if (location is null) return;
+
+            var lat = location.Latitude .ToString("F6", System.Globalization.CultureInfo.InvariantCulture);
+            var lng = location.Longitude.ToString("F6", System.Globalization.CultureInfo.InvariantCulture);
+
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+                await MapWebView.EvaluateJavaScriptAsync($"centerOnGps({lat}, {lng})"));
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"GPS chyba: {ex.Message}");
+        }
+    }
+
+    // ── Chipy typů ───────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Vytvoří lištu chipů: "Vše" + jeden chip na každý dostupný typ.
+    /// Volá se po načtení/změně typů z dat.
+    /// </summary>
+    private void RebuildChips()
+    {
+        ChipsLayout.Children.Clear();
+
+        // Chip „Vše"
+        ChipsLayout.Children.Add(MakeChip("Vše", null));
+
+        // Chip pro každý typ
+        foreach (var type in _vm.AvailableTypes)
+            ChipsLayout.Children.Add(MakeChip(GetTypeLabel(type), type));
+
+        RefreshChipStyles();
+    }
+
+    private Border MakeChip(string label, string? typeKey)
+    {
+        var btn = new Button
+        {
+            Text            = label,
+            FontSize        = 13,
+            Padding         = new Thickness(14, 0),
+            HeightRequest   = 34,
+            CornerRadius    = 17,
+            BackgroundColor = ChipInactiveBg,
+            TextColor       = ChipInactiveText,
+            CommandParameter = typeKey
+        };
+
+        btn.Clicked += async (_, _) =>
+        {
+            // Klik na uz aktivni chip → zobraz vse; jinak vyber tento typ
+            _vm.SelectedType = (_vm.SelectedType == typeKey) ? null : typeKey;
+            RefreshChipStyles();
+            await RefreshAll();
+        };
+
+        // Wrapper Border pro ostrejsi obrys
+        return new Border
+        {
+            Content         = btn,
+            Stroke          = new SolidColorBrush(ChipInactiveBorder),
+            StrokeThickness = 1,
+            StrokeShape     = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 17 },
+            Padding         = 0,
+            BackgroundColor = Colors.Transparent
+        };
+    }
+
+    private void RefreshChipStyles()
+    {
+        foreach (var child in ChipsLayout.Children)
+        {
+            if (child is not Border border || border.Content is not Button btn) continue;
+
+            var typeKey = btn.CommandParameter as string; // null = "Vše"
+            var isActive = typeKey is null
+                ? _vm.SelectedType is null      // chip "Vše" je aktivní když není vybraný žádný typ
+                : _vm.SelectedType == typeKey;
+
+            btn.BackgroundColor    = isActive ? ChipActiveBg   : ChipInactiveBg;
+            btn.TextColor          = isActive ? ChipActiveText  : ChipInactiveText;
+            border.Stroke          = new SolidColorBrush(isActive ? ChipActiveBorder : ChipInactiveBorder);
+        }
+    }
+
+    // ── Spodní panel ────────────────────────────────────────────────────────
+
+    private void OnTogglePanelTapped(object? sender, TappedEventArgs e)
+    {
+        _vm.IsPanelExpanded = !_vm.IsPanelExpanded;
+        PanelArrow.Text = _vm.IsPanelExpanded ? "▼" : "▲";
+    }
+
+    // ── Refresh mapy + seznamu ───────────────────────────────────────────────
+
+    private async Task RefreshAll()
     {
         if (!_mapLoaded) return;
 
-        var json = _vm.GetPointsJson();
-        // Escapujeme jednoduché apostrofy – JSON používá uvozovky, ale pro jistotu
+        _vm.RefreshFilter();
+
+        var json     = _vm.GetFilteredPointsJson();
         var safeJson = json.Replace("\\", "\\\\").Replace("'", "\\'");
 
         await MainThread.InvokeOnMainThreadAsync(async () =>
-        {
-            await MapWebView.EvaluateJavaScriptAsync($"loadPoints('{safeJson}')");
-        });
+            await MapWebView.EvaluateJavaScriptAsync($"loadPoints('{safeJson}')"));
     }
 
-    /// <summary>Načte map.html z MauiAsset (Resources/Raw/map.html).</summary>
+    // ── Pomocné ──────────────────────────────────────────────────────────────
+
+    private static string GetTypeLabel(string type) => type switch
+    {
+        "default"    => "Výchozí",
+        "monument"   => "Památka",
+        "restaurant" => "Restaurace",
+        "hotel"      => "Ubytování",
+        "nature"     => "Příroda",
+        "transport"  => "Doprava",
+        "shop"       => "Obchod",
+        "other"      => "Ostatní",
+        _            => char.ToUpperInvariant(type[0]) + type[1..]
+    };
+
     private static async Task<string> LoadMapHtmlAsync()
     {
         using var stream = await FileSystem.OpenAppPackageFileAsync("map.html");

@@ -2,209 +2,153 @@
 <html lang="cs">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>EuroklicMap</title>
-
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet"
-        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        crossorigin="" />
-
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { height: 100%; width: 100%; background: #e8eaf0; }
     #map { height: 100%; width: 100%; }
 
-    /* ── Popup ── */
-    .lf-popup-title   { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
-    .lf-popup-type    { font-size: 11px; color: #666; text-transform: uppercase;
-                        letter-spacing: .5px; margin-bottom: 6px; }
+    .lf-popup-title   { font-weight: 700; font-size: 15px; margin-bottom: 4px; color: #1a1a1a; }
+    .lf-popup-type    { font-size: 11px; color: #777; text-transform: uppercase; letter-spacing:.5px; margin-bottom:6px; }
     .lf-popup-address { font-size: 12px; color: #444; margin-bottom: 4px; }
-    .lf-popup-desc    { font-size: 13px; color: #222; border-top: 1px solid #eee;
-                        padding-top: 6px; margin-top: 4px; }
+    .lf-popup-desc    { font-size: 13px; color: #222; border-top: 1px solid #eee; padding-top: 6px; margin-top:4px; }
 
-    /* ── Prázdný stav ── */
     #empty-msg {
-      display: none;
-      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      background: rgba(255,255,255,.92); border-radius: 12px; padding: 20px 28px;
-      text-align: center; font-family: sans-serif; color: #555; z-index: 1000;
+      display: none; position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255,255,255,.93); border-radius: 12px;
+      padding: 20px 28px; text-align: center;
+      font-family: sans-serif; color: #555; z-index: 1000;
       box-shadow: 0 4px 16px rgba(0,0,0,.15);
     }
-    #empty-msg .icon  { font-size: 36px; margin-bottom: 8px; }
-    #empty-msg p      { font-size: 14px; margin: 0; }
+    #empty-msg .icon { font-size: 36px; margin-bottom: 8px; }
+    #empty-msg p { font-size: 14px; margin: 0; }
+
+    /* Pulsing GPS dot */
+    .gps-dot {
+      width: 14px; height: 14px;
+      background: #1565C0; border: 3px solid white; border-radius: 50%;
+      box-shadow: 0 0 0 6px rgba(21,101,192,.25), 0 2px 6px rgba(0,0,0,.3);
+    }
   </style>
 </head>
-
 <body>
   <div id="map"></div>
   <div id="empty-msg">
     <div class="icon">🗺️</div>
-    <p>Žádná data k zobrazení.<br>Nastavte API klíč a stáhněte data.</p>
+    <p>Zadna data k zobrazeni.</p>
   </div>
 
-  <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-
   <script>
-    /* ═══════════════════════════════════════════════════
-       1. Inicializace mapy – střed ČR
-    ════════════════════════════════════════════════════ */
-    var map = L.map('map', {
-      center: [49.8, 15.5],
-      zoom: 7,
-      zoomControl: true,
-      attributionControl: true
-    });
+    /* ── Inicializace mapy ── */
+    var map = L.map('map', { center: [49.8, 15.5], zoom: 7, zoomControl: true });
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       maxZoom: 19
     }).addTo(map);
 
     var markersLayer = L.layerGroup().addTo(map);
+    var gpsMarker = null;
 
-    /* ═══════════════════════════════════════════════════
-       2. Barvy podle typu bodu
-    ════════════════════════════════════════════════════ */
+    /* ── Barvy a popisky typů ── */
     var TYPE_COLORS = {
-      'default':   '#1565C0',
-      'monument':  '#C62828',
-      'restaurant':'#E65100',
-      'hotel':     '#6A1B9A',
-      'nature':    '#2E7D32',
-      'transport': '#0277BD',
-      'shop':      '#EF6C00',
-      'other':     '#546E7A'
+      'default':'#1565C0','monument':'#C62828','restaurant':'#E65100',
+      'hotel':'#6A1B9A','nature':'#2E7D32','transport':'#0277BD',
+      'shop':'#EF6C00','other':'#546E7A'
     };
-
     var TYPE_LABELS = {
-      'default':   'Výchozí',
-      'monument':  'Památka',
-      'restaurant':'Restaurace',
-      'hotel':     'Hotel / ubytování',
-      'nature':    'Příroda',
-      'transport': 'Doprava',
-      'shop':      'Obchod',
-      'other':     'Ostatní'
+      'default':'Vychozi','monument':'Pamatka','restaurant':'Restaurace',
+      'hotel':'Ubytovani','nature':'Priroda','transport':'Doprava',
+      'shop':'Obchod','other':'Ostatni'
     };
 
-    /* ═══════════════════════════════════════════════════
-       3. Vytvoření SVG ikony pro marker
-    ════════════════════════════════════════════════════ */
+    /* ── SVG marker ikona ── */
     function makeIcon(type, iconUrl) {
       if (iconUrl) {
-        return L.icon({
-          iconUrl:    iconUrl,
-          iconSize:   [36, 36],
-          iconAnchor: [18, 36],
-          popupAnchor:[0, -38]
-        });
+        return L.icon({ iconUrl: iconUrl, iconSize:[36,36], iconAnchor:[18,36], popupAnchor:[0,-38] });
       }
-
       var color = TYPE_COLORS[type] || TYPE_COLORS['default'];
-      var svg = [
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 46" width="36" height="46">',
-        '  <filter id="sh" x="-20%" y="-20%" width="140%" height="140%">',
-        '    <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity=".3"/>',
-        '  </filter>',
-        '  <path filter="url(#sh)"',
-        '        fill="', color, '"',
-        '        stroke="white" stroke-width="2"',
-        '        d="M18 2C10.3 2 4 8.3 4 16c0 10.5 14 28 14 28S32 26.5 32 16C32 8.3 25.7 2 18 2z"/>',
-        '  <circle fill="white" cx="18" cy="16" r="6"/>',
-        '</svg>'
-      ].join('');
-
-      return L.divIcon({
-        html:        svg,
-        className:   '',
-        iconSize:    [36, 46],
-        iconAnchor:  [18, 46],
-        popupAnchor: [0, -48]
-      });
+      var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 46" width="36" height="46">'
+        + '<filter id="sh"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity=".3"/></filter>'
+        + '<path filter="url(#sh)" fill="' + color + '" stroke="white" stroke-width="2"'
+        + ' d="M18 2C10.3 2 4 8.3 4 16c0 10.5 14 28 14 28S32 26.5 32 16C32 8.3 25.7 2 18 2z"/>'
+        + '<circle fill="white" cx="18" cy="16" r="6"/></svg>';
+      return L.divIcon({ html:svg, className:'', iconSize:[36,46], iconAnchor:[18,46], popupAnchor:[0,-48] });
     }
 
-    /* ═══════════════════════════════════════════════════
-       4. Sestavení HTML popupu
-    ════════════════════════════════════════════════════ */
+    /* ── Popup HTML ── */
     function buildPopup(p) {
       var html = '<div class="lf-popup-title">' + esc(p.name) + '</div>';
-
       if (p.type) {
         var label = TYPE_LABELS[p.type] || p.type;
         html += '<div class="lf-popup-type">' + esc(label) + '</div>';
       }
-
-      if (p.address) {
-        html += '<div class="lf-popup-address">📍 ' + esc(p.address) + '</div>';
-      }
-
-      if (p.description) {
-        html += '<div class="lf-popup-desc">' + esc(p.description) + '</div>';
-      }
-
+      if (p.address) html += '<div class="lf-popup-address">&#128205; ' + esc(p.address) + '</div>';
+      if (p.description) html += '<div class="lf-popup-desc">' + esc(p.description) + '</div>';
       return html;
     }
 
     function esc(str) {
       if (!str) return '';
-      return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
-    /* ═══════════════════════════════════════════════════
-       5. loadPoints() – volá MAUI po načtení / aktualizaci dat
-          Parametr: JSON string pole EuroklicPoint objektů
-    ════════════════════════════════════════════════════ */
+    /* ── loadPoints - vola MAUI po nacteni / filtrovani dat ── */
     function loadPoints(jsonStr) {
       markersLayer.clearLayers();
-
       var points;
-      try {
-        points = JSON.parse(jsonStr);
-      } catch (e) {
-        console.error('Chyba parsování JSON:', e);
-        showEmpty(true);
-        return;
-      }
+      try { points = JSON.parse(jsonStr); } catch(e) { showEmpty(true); return; }
 
-      if (!Array.isArray(points) || points.length === 0) {
-        showEmpty(true);
-        return;
-      }
-
+      if (!Array.isArray(points) || points.length === 0) { showEmpty(true); return; }
       showEmpty(false);
 
-      points.forEach(function (p) {
-        var icon   = makeIcon(p.type, p.iconUrl);
-        var popup  = buildPopup(p);
-        L.marker([p.latitude, p.longitude], { icon: icon })
-          .bindPopup(popup, { maxWidth: 260 })
+      points.forEach(function(p) {
+        var icon = makeIcon(p.type, p.iconUrl);
+        var popup = buildPopup(p);
+        var marker = L.marker([p.latitude, p.longitude], { icon: icon })
+          .bindPopup(popup, { maxWidth: 280, autoPan: true })
           .addTo(markersLayer);
+
+        // Klik na marker: vystredit mapu na bod v okruhu ~2km (zoom 14)
+        marker.on('click', function() {
+          map.setView([p.latitude, p.longitude], 14, { animate: true, duration: 0.5 });
+        });
       });
 
-      // Přizpůsob výřez mapy všem bodům
-      try {
-        var bounds = markersLayer.getBounds();
-        if (bounds.isValid()) {
-          map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
-        }
-      } catch (_) { /* ignoruj */ }
+      // Pouzij fitBounds jen pri prvnim nacteni (kdyz neni GPS)
+      if (!window._gpsSet) {
+        try {
+          var bounds = markersLayer.getBounds();
+          if (bounds.isValid()) map.fitBounds(bounds, { padding: [40,40], maxZoom: 14 });
+        } catch(_) {}
+      }
     }
 
-    /* ═══════════════════════════════════════════════════
-       6. Pomocné funkce
-    ════════════════════════════════════════════════════ */
+    /* ── GPS: vystredit mapu na uzivatelovu polohu ── */
+    function centerOnGps(lat, lng) {
+      window._gpsSet = true;
+
+      if (gpsMarker) map.removeLayer(gpsMarker);
+
+      var gpsIcon = L.divIcon({
+        html: '<div class="gps-dot"></div>',
+        className: '', iconSize:[14,14], iconAnchor:[7,7]
+      });
+      gpsMarker = L.marker([lat, lng], { icon: gpsIcon, zIndexOffset: 1000 })
+        .bindPopup('<b>Vase poloha</b>')
+        .addTo(map);
+
+      map.setView([lat, lng], 14, { animate: true, duration: 0.8 });
+    }
+
     function showEmpty(visible) {
       document.getElementById('empty-msg').style.display = visible ? 'block' : 'none';
     }
 
-    // Příznak pro MAUI – mapa je připravena přijmout data
     window.mapReady = true;
   </script>
 </body>

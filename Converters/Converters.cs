@@ -31,3 +31,61 @@ public class BoolToColorConverter : IValueConverter
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         => throw new NotImplementedException();
 }
+
+/// <summary>
+/// Typ bodu → Color (shoduje se s TYPE_COLORS v map.html).
+/// Pouziva se pro barevnou tecku vedle nazvu bodu v seznamu.
+/// </summary>
+public class TypeColorConverter : IValueConverter
+{
+    private static readonly Dictionary<string, string> Colors = new()
+    {
+        { "default",    "#1565C0" },
+        { "monument",   "#C62828" },
+        { "restaurant", "#E65100" },
+        { "hotel",      "#6A1B9A" },
+        { "nature",     "#2E7D32" },
+        { "transport",  "#0277BD" },
+        { "shop",       "#EF6C00" },
+        { "other",      "#546E7A" },
+    };
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        var key = value as string ?? "default";
+        var hex = Colors.TryGetValue(key, out var c) ? c : Colors["default"];
+        return Color.FromArgb(hex);
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}
+
+/// <summary>Typ bodu → cesky popisek, napr. "monument" → "Památka".</summary>
+public class TypeLabelConverter : IValueConverter
+{
+    private static readonly Dictionary<string, string> Labels = new()
+    {
+        { "default",    "Výchozí"    },
+        { "monument",   "Památka"    },
+        { "restaurant", "Restaurace" },
+        { "hotel",      "Ubytování"  },
+        { "nature",     "Příroda"    },
+        { "transport",  "Doprava"    },
+        { "shop",       "Obchod"     },
+        { "other",      "Ostatní"    },
+    };
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        var key = value as string ?? "default";
+        if (Labels.TryGetValue(key, out var label)) return label;
+        // Nezname typy: prvni pismeno velke, zbytek tak jak je
+        return key.Length > 0
+            ? char.ToUpperInvariant(key[0]) + key[1..]
+            : key;
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}
