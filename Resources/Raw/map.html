@@ -10,11 +10,15 @@
     html, body { height: 100%; width: 100%; background: #e8eaf0; }
     #map { height: 100%; width: 100%; }
 
+    /* Popup */
     .lf-popup-title   { font-weight: 700; font-size: 15px; margin-bottom: 4px; color: #1a1a1a; }
-    .lf-popup-type    { font-size: 11px; color: #777; text-transform: uppercase; letter-spacing:.5px; margin-bottom:6px; }
+    .lf-popup-type    { display:inline-block; font-size: 11px; color: #fff;
+                        text-transform: uppercase; letter-spacing:.5px;
+                        padding: 1px 7px; border-radius: 10px; margin-bottom:6px; }
     .lf-popup-address { font-size: 12px; color: #444; margin-bottom: 4px; }
     .lf-popup-desc    { font-size: 13px; color: #222; border-top: 1px solid #eee; padding-top: 6px; margin-top:4px; }
 
+    /* "Zadna data" */
     #empty-msg {
       display: none; position: absolute; top: 50%; left: 50%;
       transform: translate(-50%, -50%);
@@ -26,12 +30,15 @@
     #empty-msg .icon { font-size: 36px; margin-bottom: 8px; }
     #empty-msg p { font-size: 14px; margin: 0; }
 
-    /* Pulsing GPS dot */
+    /* GPS pulsujici bod */
     .gps-dot {
       width: 14px; height: 14px;
       background: #1565C0; border: 3px solid white; border-radius: 50%;
       box-shadow: 0 0 0 6px rgba(21,101,192,.25), 0 2px 6px rgba(0,0,0,.3);
     }
+
+    /* Wrapper markeru - bez Leaflet defaultniho pozadi */
+    .mp-marker { background: transparent !important; border: none !important; }
   </style>
 </head>
 <body>
@@ -54,40 +61,95 @@
     var markersLayer = L.layerGroup().addTo(map);
     var gpsMarker = null;
 
-    /* ── Barvy a popisky typů ── */
-    var TYPE_COLORS = {
-      'default':'#1565C0','monument':'#C62828','restaurant':'#E65100',
-      'hotel':'#6A1B9A','nature':'#2E7D32','transport':'#0277BD',
-      'shop':'#EF6C00','other':'#546E7A'
-    };
-    var TYPE_LABELS = {
-      'default':'Vychozi','monument':'Pamatka','restaurant':'Restaurace',
-      'hotel':'Ubytovani','nature':'Priroda','transport':'Doprava',
-      'shop':'Obchod','other':'Ostatni'
+    /* ── Typy bodů – shodné s webovou aplikací (app.js ICON_TYPES) ── */
+    var ICON_TYPES = {
+      'default':      { label: 'Obecny',             color: '#3b82f6', emoji: ''    },
+      'monument':     { label: 'Pamatka',             color: '#7c3aed', emoji: '★' },
+      'restaurant':   { label: 'Restaurace',          color: '#ea580c', emoji: '🍴' },
+      'hotel':        { label: 'Ubytovani',           color: '#facc15', emoji: '🛏' },
+      'nature':       { label: 'Priroda',             color: '#16a34a', emoji: '🌲' },
+      'transport':    { label: 'Doprava',             color: '#0891b2', emoji: '🚌' },
+      'shop':         { label: 'Obchod',              color: '#db2777', emoji: '🛗' },
+      'WC':           { label: 'Toaleta',             color: '#38bdf8', emoji: '🚻' },
+      'Plošina':      { label: 'Plošina',            color: '#f97316', emoji: '♿'  },
+      'Plošina + WC': { label: 'Toaleta a plošina', color: '#38f8bb', emoji: '🚻♿' },
+      'Výtah':        { label: 'Výtah',              color: '#a855f7', emoji: '🛗' },
+      'Brána':        { label: 'Brána',              color: '#92400e', emoji: '⛩️' },
+      'Parkoviště':  { label: 'Parkoviště',  color: '#1d4ed8', emoji: '🅿️' },
+      'Dveře':       { label: 'Dveře',        color: '#78716c', emoji: '🚪' },
+      'Sprcha':      { label: 'Sprcha',       color: '#0e7490', emoji: '🚿' },
+      'Závora':      { label: 'Závora',       color: '#f59e0b', emoji: '🚧' },
+      'other':        { label: 'Ostatni',             color: '#6b7280', emoji: '?'   }
     };
 
-    /* ── SVG marker ikona ── */
-    function makeIcon(type, iconUrl) {
-      if (iconUrl) {
-        return L.icon({ iconUrl: iconUrl, iconSize:[36,36], iconAnchor:[18,36], popupAnchor:[0,-38] });
+    /* ── Hash barva pro neznamy typ (mirror JS colorFromString) ── */
+    function colorFromString(str) {
+      var hash = 0;
+      for (var i = 0; i < str.length; i++) {
+        hash = ((hash << 5) - hash) + str.charCodeAt(i);
+        hash |= 0; // 32-bit int
       }
-      var color = TYPE_COLORS[type] || TYPE_COLORS['default'];
-      var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 46" width="36" height="46">'
-        + '<filter id="sh"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity=".3"/></filter>'
-        + '<path filter="url(#sh)" fill="' + color + '" stroke="white" stroke-width="2"'
-        + ' d="M18 2C10.3 2 4 8.3 4 16c0 10.5 14 28 14 28S32 26.5 32 16C32 8.3 25.7 2 18 2z"/>'
-        + '<circle fill="white" cx="18" cy="16" r="6"/></svg>';
-      return L.divIcon({ html:svg, className:'', iconSize:[36,46], iconAnchor:[18,46], popupAnchor:[0,-48] });
+      var hue = Math.abs(hash) % 360;
+      return hslToHex(hue, 65, 45);
+    }
+
+    function hslToHex(h, s, l) {
+      s /= 100; l /= 100;
+      var k = function(n) { return (n + h / 30) % 12; };
+      var a = s * Math.min(l, 1 - l);
+      var channel = function(n) {
+        var c = l - a * Math.max(-1, Math.min(Math.min(k(n) - 3, 9 - k(n)), 1));
+        return Math.round(255 * c).toString(16).padStart(2, '0');
+      };
+      return '#' + channel(0) + channel(8) + channel(4);
+    }
+
+    function getTypeMeta(type) {
+      if (!type) return ICON_TYPES['default'];
+      if (ICON_TYPES[type]) return ICON_TYPES[type];
+      return { label: type, color: colorFromString(type), emoji: '?' };
+    }
+
+    /* ── SVG pin marker – stejny tvar jako webova aplikace ── */
+    function makePinSvg(color, emoji) {
+      var safeColor = String(color).replace(/[^#0-9a-zA-Z]/g, '');
+      var safeEmoji = (emoji || '').substring(0, 4);
+      var innerLabel = safeEmoji
+        ? '<text x="15" y="19" text-anchor="middle" font-size="13" font-family="Segoe UI Emoji,Apple Color Emoji,Arial">' + safeEmoji + '</text>'
+        : '<circle cx="15" cy="15" r="5" fill="white"/>';
+      return '<svg width="30" height="42" viewBox="0 0 30 42" xmlns="http://www.w3.org/2000/svg">'
+        + '<path d="M15 0 C7 0 0 7 0 15 C0 26 15 42 15 42 C15 42 30 26 30 15 C30 7 23 0 15 0 Z"'
+        + ' fill="' + safeColor + '" stroke="#1f2937" stroke-width="1"/>'
+        + innerLabel
+        + '</svg>';
+    }
+
+    /* ── Leaflet ikona bodu ── */
+    function buildLeafletIcon(point) {
+      if (point.iconUrl) {
+        return L.divIcon({
+          className: 'mp-marker',
+          html: '<img src="' + point.iconUrl + '" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,.4)" alt="">',
+          iconSize: [32,32], iconAnchor: [16,32], popupAnchor: [0,-34]
+        });
+      }
+      var meta = getTypeMeta(point.type);
+      return L.divIcon({
+        className: 'mp-marker',
+        html: makePinSvg(meta.color, meta.emoji),
+        iconSize: [30,42], iconAnchor: [15,42], popupAnchor: [0,-44]
+      });
     }
 
     /* ── Popup HTML ── */
     function buildPopup(p) {
+      var meta = getTypeMeta(p.type);
       var html = '<div class="lf-popup-title">' + esc(p.name) + '</div>';
       if (p.type) {
-        var label = TYPE_LABELS[p.type] || p.type;
-        html += '<div class="lf-popup-type">' + esc(label) + '</div>';
+        html += '<div class="lf-popup-type" style="background:' + meta.color + '">'
+              + esc(meta.label) + '</div>';
       }
-      if (p.address) html += '<div class="lf-popup-address">&#128205; ' + esc(p.address) + '</div>';
+      if (p.address)     html += '<div class="lf-popup-address">&#128205; ' + esc(p.address) + '</div>';
       if (p.description) html += '<div class="lf-popup-desc">' + esc(p.description) + '</div>';
       return html;
     }
@@ -97,29 +159,26 @@
       return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
-    /* ── loadPoints - vola MAUI po nacteni / filtrovani dat ── */
+    /* ── loadPoints – volano z MAUI po nacteni/filtrovani dat ── */
     function loadPoints(jsonStr) {
       markersLayer.clearLayers();
       var points;
       try { points = JSON.parse(jsonStr); } catch(e) { showEmpty(true); return; }
-
       if (!Array.isArray(points) || points.length === 0) { showEmpty(true); return; }
       showEmpty(false);
 
       points.forEach(function(p) {
-        var icon = makeIcon(p.type, p.iconUrl);
-        var popup = buildPopup(p);
+        var icon   = buildLeafletIcon(p);
+        var popup  = buildPopup(p);
         var marker = L.marker([p.latitude, p.longitude], { icon: icon })
           .bindPopup(popup, { maxWidth: 280, autoPan: true })
           .addTo(markersLayer);
 
-        // Klik na marker: vystredit mapu na bod v okruhu ~2km (zoom 14)
         marker.on('click', function() {
           map.setView([p.latitude, p.longitude], 14, { animate: true, duration: 0.5 });
         });
       });
 
-      // Pouzij fitBounds jen pri prvnim nacteni (kdyz neni GPS)
       if (!window._gpsSet) {
         try {
           var bounds = markersLayer.getBounds();
@@ -128,12 +187,10 @@
       }
     }
 
-    /* ── GPS: vystredit mapu na uzivatelovu polohu ── */
+    /* ── GPS: vystred mapu na uzivatelovu polohu ── */
     function centerOnGps(lat, lng) {
       window._gpsSet = true;
-
       if (gpsMarker) map.removeLayer(gpsMarker);
-
       var gpsIcon = L.divIcon({
         html: '<div class="gps-dot"></div>',
         className: '', iconSize:[14,14], iconAnchor:[7,7]
@@ -141,7 +198,6 @@
       gpsMarker = L.marker([lat, lng], { icon: gpsIcon, zIndexOffset: 1000 })
         .bindPopup('<b>Vase poloha</b>')
         .addTo(map);
-
       map.setView([lat, lng], 14, { animate: true, duration: 0.8 });
     }
 

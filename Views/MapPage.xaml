@@ -120,13 +120,24 @@
                             BackgroundColor="White">
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="models:EuroklicPoint">
-                        <Grid Padding="12,10" ColumnDefinitions="14,8,*"
+                        <Grid Padding="10,8,12,8" ColumnDefinitions="36,10,*"
                               RowDefinitions="Auto,Auto,Auto">
-                            <!-- Barevná tečka -->
-                            <BoxView Grid.Column="0" Grid.RowSpan="3"
-                                     WidthRequest="10" HeightRequest="10" CornerRadius="5"
-                                     VerticalOptions="Start" Margin="0,4,0,0"
-                                     Color="{Binding Type, Converter={StaticResource TypeColorConverter}}" />
+
+                            <!-- Barevný kruh s emoji ikonou (pin marker stejny jako na webu) -->
+                            <Border Grid.Column="0" Grid.RowSpan="3"
+                                    WidthRequest="32" HeightRequest="32"
+                                    StrokeThickness="0"
+                                    VerticalOptions="Start" Margin="0,2,0,0"
+                                    BackgroundColor="{Binding Type, Converter={StaticResource TypeColorConverter}}">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="16" />
+                                </Border.StrokeShape>
+                                <Label Text="{Binding Type, Converter={StaticResource TypeIconConverter}}"
+                                       FontSize="15"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center" />
+                            </Border>
+
                             <!-- Název -->
                             <Label Grid.Column="2" Grid.Row="0"
                                    Text="{Binding Name}"

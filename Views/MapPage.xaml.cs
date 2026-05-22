@@ -206,17 +206,27 @@ public partial class MapPage : ContentPage
 
     // ── Pomocné ──────────────────────────────────────────────────────────────
 
+    // Stejne hodnoty jako ICON_TYPES v app.js – emoji + cesky popisek pro chip
     private static string GetTypeLabel(string type) => type switch
     {
-        "default"    => "Výchozí",
-        "monument"   => "Památka",
-        "restaurant" => "Restaurace",
-        "hotel"      => "Ubytování",
-        "nature"     => "Příroda",
-        "transport"  => "Doprava",
-        "shop"       => "Obchod",
-        "other"      => "Ostatní",
-        _            => char.ToUpperInvariant(type[0]) + type[1..]
+        "default"      => "Obecný",
+        "monument"     => "★ Památka",
+        "restaurant"   => "🍴 Restaurace",
+        "hotel"        => "🛏 Ubytování",
+        "nature"       => "🌲 Příroda",
+        "transport"    => "🚌 Doprava",
+        "shop"         => "🛍 Obchod",
+        "WC"           => "🚻 Toaleta",
+        "Plošina"      => "♿ Plošina",
+        "Plošina + WC" => "🚻♿ Toaleta+Plošina",
+        "Výtah"        => "🛗 Výtah",
+        "Brána"        => "⛩️ Brána",
+        "Parkoviště"   => "🅿️ Parkoviště",
+        "Dveře"        => "🚪 Dveře",
+        "Sprcha"       => "🚿 Sprcha",
+        "Závora"       => "🚧 Závora",
+        "other"        => "? Ostatní",
+        _              => char.ToUpperInvariant(type[0]) + type[1..]
     };
 
     private static async Task<string> LoadMapHtmlAsync()

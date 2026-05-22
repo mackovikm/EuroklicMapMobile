@@ -22,6 +22,7 @@
             <conv:BoolToColorConverter      x:Key="BoolToColorConverter" />
             <conv:TypeColorConverter        x:Key="TypeColorConverter" />
             <conv:TypeLabelConverter        x:Key="TypeLabelConverter" />
+            <conv:TypeIconConverter         x:Key="TypeIconConverter" />
 
             <!-- ── Styly ─────────────────────────────────────────────── -->
             <Style TargetType="Button">

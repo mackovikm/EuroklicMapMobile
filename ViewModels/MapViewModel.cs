@@ -7,16 +7,16 @@ namespace EuroklicMapMobile.ViewModels;
 public class MapViewModel : BaseViewModel
 {
     private readonly ILocalDatabaseService _db;
-    private readonly ISyncService          _sync;
+    private readonly ISyncService _sync;
 
-    private List<EuroklicPoint> _points         = [];
-    private List<EuroklicPoint> _filteredPoints  = [];
-    private List<string>        _availTypes      = [];
-    private string              _searchText      = string.Empty;
-    private string?             _selectedType;
-    private string              _pointCountText  = string.Empty;
-    private bool                _isPanelExpanded;
-    private bool                _initialized;
+    private List<EuroklicPoint> _points = [];
+    private List<EuroklicPoint> _filteredPoints = [];
+    private List<string> _availTypes = [];
+    private string _searchText = string.Empty;
+    private string? _selectedType;
+    private string _pointCountText = string.Empty;
+    private bool _isPanelExpanded;
+    private bool _initialized;
 
     // ── Verejne vlastnosti ──────────────────────────────────────────────────
 
@@ -44,9 +44,9 @@ public class MapViewModel : BaseViewModel
         set => SetField(ref _isPanelExpanded, value);
     }
 
-    public List<string>        AvailableTypes  => _availTypes;
-    public bool                HasTypes        => _availTypes.Count > 0;
-    public List<EuroklicPoint> FilteredPoints  => _filteredPoints;
+    public List<string> AvailableTypes => _availTypes;
+    public bool HasTypes => _availTypes.Count > 0;
+    public List<EuroklicPoint> FilteredPoints => _filteredPoints;
 
     /// <summary>Pocet filtrovaných / celkem, napr. "12 / 4035".</summary>
     public string FilteredCountText => $"{_filteredPoints.Count} / {_points.Count}";
@@ -58,7 +58,7 @@ public class MapViewModel : BaseViewModel
 
     public MapViewModel(ILocalDatabaseService db, ISyncService sync)
     {
-        _db   = db;
+        _db = db;
         _sync = sync;
         RefreshCommand = CreateBusyCommand(ForceSyncAsync);
     }
@@ -123,11 +123,13 @@ public class MapViewModel : BaseViewModel
             .Select(p => p.Type)
             .Where(w => !string.IsNullOrEmpty(w))
             .Distinct()
-            .OrderBy(t => t)
+            //.OrderBy(t => t)
             .ToList();
 
+        var ordertypes = UserDefinedTypeOrdeList(types);
+
         if (types.SequenceEqual(_availTypes)) return;
-        _availTypes = types;
+        _availTypes = ordertypes;
         OnPropertyChanged(nameof(AvailableTypes));
         OnPropertyChanged(nameof(HasTypes));
         TypesLoaded?.Invoke(this, EventArgs.Empty);
@@ -173,4 +175,15 @@ public class MapViewModel : BaseViewModel
 
     private void UpdateCountText()
         => PointCountText = _points.Count > 0 ? $"{_points.Count} bodu" : "Zadna data";
+
+
+    private List<string?> UserDefinedTypeOrdeList(List<string?>? sourceList)
+    {
+        List<string> definedList = new List<string> { "WC", "Plošina", "Plošina + WC", "Výtah", "Sprcha", "Dveře", "Brána", "Parkoviště", "Závora" };
+        List<string?> orderedList = sourceList
+                                    .OrderBy(prvek => definedList.IndexOf(prvek) >= 0 ? definedList.IndexOf(prvek) : int.MaxValue)
+                                    .ToList();
+
+        return orderedList;
+    }
 }
