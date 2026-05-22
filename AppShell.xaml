@@ -9,7 +9,16 @@
        Shell.TitleColor="White"
        Title="Euroklíč">
 
-    <ShellContent Title="Euroklíč — mapa míst"
+    <Shell.TitleView>
+        <Label Text="Euroklíč — mapa míst"
+               TextColor="White"
+               FontSize="14"
+               FontAttributes="Bold"
+               VerticalOptions="Center"
+               HorizontalOptions="Start" />
+    </Shell.TitleView>
+
+    <ShellContent Title=""
                   ContentTemplate="{DataTemplate views:MapPage}"
                   Route="MapPage" />
 

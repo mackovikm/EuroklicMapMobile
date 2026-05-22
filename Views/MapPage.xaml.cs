@@ -31,6 +31,11 @@ public partial class MapPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+
+        // Chip "Vše" zobraz hned – před načtením dat (jinak je řádek chipů prázdný a kolabuje)
+        if (ChipsLayout.Children.Count == 0)
+            RebuildChips();
+
         await _vm.InitializeAsync();
 
         if (MapWebView.Source is null)

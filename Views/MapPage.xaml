@@ -17,35 +17,64 @@
                      Order="Primary" Priority="1" />
     </ContentPage.ToolbarItems>
 
-    <Grid RowDefinitions="Auto,Auto,*,Auto,Auto">
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto">
 
         <!-- ── Řádek 0: Vyhledávání ────────────────────────────────────── -->
         <SearchBar Grid.Row="0"
-                   x:Name="SearchBar"
+                   x:Name="MainSearchBar"
                    Placeholder="Hledat (název, popis nebo adresu)..."
                    Text="{Binding SearchText}"
                    TextChanged="OnSearchTextChanged"
                    SearchButtonPressed="OnSearchButtonPressed"
-                   BackgroundColor="White" />
+                   BackgroundColor="White"
+                   TextColor="#1A1A1A"
+                   PlaceholderColor="#9E9E9E"
+                   HeightRequest="40"
+                   MinimumHeightRequest="40" />
 
-        <!-- ── Řádek 1: Horizontálně rolovatelné chipy typů ───────────── -->
-        <ScrollView Grid.Row="1"
+        <!-- ── Řádek 2: Horizontálně rolovatelné chipy typů ───────────── -->
+        <ScrollView Grid.Row="2"
                     Orientation="Horizontal"
                     HorizontalScrollBarVisibility="Never"
-                    BackgroundColor="#F0F4F8">
+                    BackgroundColor="#F0F4F8"
+                    MinimumHeightRequest="46">
             <HorizontalStackLayout x:Name="ChipsLayout"
                                    Padding="8,6"
                                    Spacing="6" />
         </ScrollView>
 
-        <!-- ── Řádek 2: Mapa ──────────────────────────────────────────── -->
+        <!-- ── Řádek 1: Tlačítka akcí ────────────────────────────────── -->
+        <Grid Grid.Row="1"
+              BackgroundColor="White"
+              Padding="8,5,8,6"
+              ColumnDefinitions="*,*"
+              ColumnSpacing="6">
+            <Button Grid.Column="0"
+                    Text="Hledat"
+                    Clicked="OnSearchButtonPressed"
+                    FontSize="13"
+                    HeightRequest="34"
+                    Padding="8,0"
+                    BackgroundColor="{StaticResource Primary}"
+                    TextColor="White" />
+            <Button Grid.Column="1"
+                    Text="Obnovit"
+                    Command="{Binding RefreshCommand}"
+                    FontSize="13"
+                    HeightRequest="34"
+                    Padding="8,0"
+                    BackgroundColor="{StaticResource Primary}"
+                    TextColor="White" />
+        </Grid>
+
+        <!-- ── Řádek 3: Mapa ──────────────────────────────────────────── -->
         <WebView x:Name="MapWebView"
-                 Grid.Row="2"
+                 Grid.Row="3"
                  Navigating="OnMapNavigating"
                  Navigated="OnMapNavigated" />
 
         <!-- Spinner načítání (překrývá mapu) -->
-        <Grid Grid.Row="2"
+        <Grid Grid.Row="3"
               IsVisible="{Binding IsBusy}"
               BackgroundColor="#99FFFFFF"
               ZIndex="10">
@@ -62,8 +91,8 @@
             </VerticalStackLayout>
         </Grid>
 
-        <!-- ── Řádek 3: Stavový řádek ─────────────────────────────────── -->
-        <Grid Grid.Row="3"
+        <!-- ── Řádek 5: Stavový řádek ─────────────────────────────────── -->
+        <Grid Grid.Row="5"
               BackgroundColor="{StaticResource Primary}"
               Padding="12,5">
             <Grid.ColumnDefinitions>

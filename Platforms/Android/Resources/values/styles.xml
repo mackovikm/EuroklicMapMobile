@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Zmenšení výšky Shell navigation baru (výchozí je 56dp) -->
+    <style name="Maui.MainTheme.Custom" parent="Maui.MainTheme.NoActionBar">
+        <item name="actionBarSize">40dp</item>
+    </style>
+</resources>
