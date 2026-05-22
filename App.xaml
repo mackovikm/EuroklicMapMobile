@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Application xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:conv="clr-namespace:EuroklicMapMobile.Converters"
+             x:Class="EuroklicMapMobile.App">
+    <Application.Resources>
+        <ResourceDictionary>
+
+            <!-- ── Barvy ────────────────────────────────────────────── -->
+            <Color x:Key="Primary">#1565C0</Color>
+            <Color x:Key="PrimaryDark">#0D47A1</Color>
+            <Color x:Key="Secondary">#E3F2FD</Color>
+            <Color x:Key="Accent">#42A5F5</Color>
+            <Color x:Key="White">#FFFFFF</Color>
+            <Color x:Key="OffBlack">#1C1B1F</Color>
+            <Color x:Key="LightGray">#F5F5F5</Color>
+            <Color x:Key="MidGray">#9E9E9E</Color>
+
+            <!-- ── Konvertory ────────────────────────────────────────── -->
+            <conv:InvertBoolConverter       x:Key="InvertBoolConverter" />
+            <conv:StringNotEmptyConverter   x:Key="StringNotEmptyConverter" />
+            <conv:BoolToColorConverter      x:Key="BoolToColorConverter" />
+
+            <!-- ── Styly ─────────────────────────────────────────────── -->
+            <Style TargetType="Button">
+                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="Padding"      Value="14,10" />
+                <Setter Property="FontSize"     Value="14" />
+            </Style>
+
+            <Style TargetType="Entry">
+                <Setter Property="BackgroundColor" Value="{StaticResource LightGray}" />
+            </Style>
+
+            <Style TargetType="Label" x:Key="SectionHeader">
+                <Setter Property="FontSize"       Value="12" />
+                <Setter Property="FontAttributes" Value="Bold" />
+                <Setter Property="TextColor"      Value="{StaticResource Primary}" />
+                <Setter Property="Margin"         Value="0,20,0,0" />
+                <Setter Property="CharacterSpacing" Value="1.2" />
+            </Style>
+
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
