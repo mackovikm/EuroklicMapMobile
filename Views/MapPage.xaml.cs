@@ -54,14 +54,22 @@ public partial class MapPage : ContentPage
         if (!e.Url.StartsWith("maui://", StringComparison.OrdinalIgnoreCase)) return;
         e.Cancel = true;
 
-        // maui://copy?text=...  → zkopíruj text do schránky
+        // maui://copy?text=...  → zkopíruj text do schránky + zobraz toast
         if (e.Url.StartsWith("maui://copy?", StringComparison.OrdinalIgnoreCase))
         {
             var raw  = e.Url["maui://copy?text=".Length..];
             var text = Uri.UnescapeDataString(raw);
             if (!string.IsNullOrEmpty(text))
                 MainThread.BeginInvokeOnMainThread(async () =>
-                    await Clipboard.Default.SetTextAsync(text));
+                {
+                    await Clipboard.Default.SetTextAsync(text);
+#if ANDROID
+                    Android.Widget.Toast.MakeText(
+                        Android.App.Application.Context,
+                        "Adresa zkopírována",
+                        Android.Widget.ToastLength.Short)?.Show();
+#endif
+                });
             return;
         }
 

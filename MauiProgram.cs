@@ -15,20 +15,20 @@ public static class MauiProgram
 
         builder.UseMauiApp<App>();
 
-        // Podržení labelu se třídou CopyOnLongPress → zkopíruje celý text do schránky
+        // Podržení labelu se třídou CopyOnLongPress → zkopíruje text, zobrazí toast, potlačí systémový dialog
 #if ANDROID
         Microsoft.Maui.Handlers.LabelHandler.Mapper.AppendToMapping("CopyOnLongPress", (handler, view) =>
         {
             if (view is Label label && label.StyleClass?.Contains("CopyOnLongPress") == true)
             {
                 handler.PlatformView.LongClickable = true;
-                handler.PlatformView.LongClick += (_, _) =>
-                {
-                    var text = label.Text;
-                    if (!string.IsNullOrEmpty(text))
-                        MainThread.BeginInvokeOnMainThread(async () =>
-                            await Clipboard.Default.SetTextAsync(text));
-                };
+                handler.PlatformView.SetTextIsSelectable(false);
+                handler.PlatformView.CustomSelectionActionModeCallback =
+                    new EuroklicMapMobile.Platforms.Android.NoOpActionModeCallback();
+                handler.PlatformView.CustomInsertionActionModeCallback =
+                    new EuroklicMapMobile.Platforms.Android.NoOpActionModeCallback();
+                handler.PlatformView.SetOnLongClickListener(
+                    new EuroklicMapMobile.Platforms.Android.CopyLongClickListener(label));
             }
         });
 #endif
