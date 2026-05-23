@@ -54,6 +54,17 @@ public partial class MapPage : ContentPage
         if (!e.Url.StartsWith("maui://", StringComparison.OrdinalIgnoreCase)) return;
         e.Cancel = true;
 
+        // maui://copy?text=...  → zkopíruj text do schránky
+        if (e.Url.StartsWith("maui://copy?", StringComparison.OrdinalIgnoreCase))
+        {
+            var raw  = e.Url["maui://copy?text=".Length..];
+            var text = Uri.UnescapeDataString(raw);
+            if (!string.IsNullOrEmpty(text))
+                MainThread.BeginInvokeOnMainThread(async () =>
+                    await Clipboard.Default.SetTextAsync(text));
+            return;
+        }
+
         // maui://location?lat=...&lng=...  → referenční bod pro vzdálenost (GPS nebo klik)
         if (e.Url.StartsWith("maui://location?", StringComparison.OrdinalIgnoreCase))
         {

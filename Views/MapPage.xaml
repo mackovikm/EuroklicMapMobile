@@ -230,6 +230,7 @@
                                        FontSize="12" TextColor="#444444"
                                        IsVisible="{Binding Address, Converter={StaticResource StringNotEmptyConverter}}"
                                        LineBreakMode="TailTruncation"
+                                       StyleClass="CopyOnLongPress"
                                        VerticalOptions="Center" />
 
                                 <!-- Ikona souřadnic -->
@@ -239,16 +240,11 @@
                                        VerticalOptions="Center" HorizontalOptions="Start" />
                                 <!-- Souřadnice -->
                                 <Label Grid.Column="1" Grid.Row="3"
+                                       Text="{Binding CoordinatesText}"
                                        FontSize="10" TextColor="#999999"
-                                       FontFamily="Monospace" VerticalOptions="Center">
-                                    <Label.FormattedText>
-                                        <FormattedString>
-                                            <Span Text="{Binding Latitude, StringFormat='{0:F5}'}" />
-                                            <Span Text=", " />
-                                            <Span Text="{Binding Longitude, StringFormat='{0:F5}'}" />
-                                        </FormattedString>
-                                    </Label.FormattedText>
-                                </Label>
+                                       FontFamily="Monospace"
+                                       StyleClass="CopyOnLongPress"
+                                       VerticalOptions="Center" />
 
                             </Grid>
                         </Grid>

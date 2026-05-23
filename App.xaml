@@ -35,6 +35,7 @@
                 <Setter Property="BackgroundColor" Value="{StaticResource LightGray}" />
             </Style>
 
+
             <Style TargetType="Label" x:Key="SectionHeader">
                 <Setter Property="FontSize"       Value="12" />
                 <Setter Property="FontAttributes" Value="Bold" />

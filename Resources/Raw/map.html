@@ -15,9 +15,9 @@
     .lf-popup-type    { display:inline-block; font-size: 11px; color: #fff;
                         text-transform: uppercase; letter-spacing:.5px;
                         padding: 1px 7px; border-radius: 10px; margin-bottom:6px; }
-    .lf-popup-address { font-size: 12px; color: #444; margin-bottom: 4px; }
+    .lf-popup-address { font-size: 12px; color: #444; margin-bottom: 4px; user-select: text; -webkit-user-select: text; }
     .lf-popup-desc    { font-size: 13px; color: #222; border-top: 1px solid #eee; padding-top: 6px; margin-top:4px; }
-    .lf-popup-coords  { font-size: 11px; color: #888; font-family: monospace; margin-top: 6px; border-top: 1px solid #eee; padding-top: 5px; }
+    .lf-popup-coords  { font-size: 11px; color: #888; font-family: monospace; margin-top: 6px; border-top: 1px solid #eee; padding-top: 5px; user-select: text; -webkit-user-select: text; }
 
     /* "Zadna data" */
     #empty-msg {
@@ -260,6 +260,37 @@
     function showEmpty(visible) {
       document.getElementById('empty-msg').style.display = visible ? 'block' : 'none';
     }
+
+    /* ── Long-press kopírování v popupu → MAUI clipboard ── */
+    (function() {
+      var LONG_MS = 600;
+      var _timer = null;
+
+      function attachCopy(el, getText) {
+        el.addEventListener('touchstart', function(e) {
+          _timer = setTimeout(function() {
+            _timer = null;
+            var text = getText();
+            if (text) {
+              try { window.location.href = 'maui://copy?text=' + encodeURIComponent(text); } catch(_) {}
+              el.style.opacity = '0.5';
+              setTimeout(function() { el.style.opacity = ''; }, 300);
+            }
+          }, LONG_MS);
+        }, { passive: true });
+        el.addEventListener('touchend',   function() { clearTimeout(_timer); _timer = null; }, { passive: true });
+        el.addEventListener('touchmove',  function() { clearTimeout(_timer); _timer = null; }, { passive: true });
+      }
+
+      /* Napoj se na každý nově otevřený popup */
+      map.on('popupopen', function(ev) {
+        var node = ev.popup.getElement();
+        var addrEl   = node.querySelector('.lf-popup-address');
+        var coordsEl = node.querySelector('.lf-popup-coords');
+        if (addrEl)   attachCopy(addrEl,   function() { return addrEl.innerText.replace(/^[^\w]+/, '').trim(); });
+        if (coordsEl) attachCopy(coordsEl, function() { return coordsEl.innerText.trim(); });
+      });
+    })();
 
     window.mapReady = true;
   </script>

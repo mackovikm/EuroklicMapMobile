@@ -29,4 +29,6 @@ public class EuroklicPoint
         : string.Empty;
 
     [Ignore] public bool HasDistance => DistanceKm.HasValue;
+
+    [Ignore] public string CoordinatesText => $"{Latitude:F5}, {Longitude:F5}";
 }
