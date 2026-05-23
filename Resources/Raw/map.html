@@ -17,6 +17,7 @@
                         padding: 1px 7px; border-radius: 10px; margin-bottom:6px; }
     .lf-popup-address { font-size: 12px; color: #444; margin-bottom: 4px; }
     .lf-popup-desc    { font-size: 13px; color: #222; border-top: 1px solid #eee; padding-top: 6px; margin-top:4px; }
+    .lf-popup-coords  { font-size: 11px; color: #888; font-family: monospace; margin-top: 6px; border-top: 1px solid #eee; padding-top: 5px; }
 
     /* "Zadna data" */
     #empty-msg {
@@ -153,6 +154,7 @@
       }
       if (p.address)     html += '<div class="lf-popup-address">&#128205; ' + esc(p.address) + '</div>';
       if (p.description) html += '<div class="lf-popup-desc">' + esc(p.description) + '</div>';
+      html += '<div class="lf-popup-coords"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px"><path d="M12 11.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/><path d="M12 2a7 7 0 0 1 7 7c0 5.25-7 13-7 13S5 14.25 5 9a7 7 0 0 1 7-7z"/></svg>' + p.latitude.toFixed(5) + ', ' + p.longitude.toFixed(5) + '</div>';
       return html;
     }
 
