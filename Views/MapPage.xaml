@@ -170,10 +170,10 @@
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="models:EuroklicPoint">
                         <Grid Padding="10,8,12,8" ColumnDefinitions="36,10,*"
-                              RowDefinitions="Auto,Auto,Auto,Auto">
+                              RowDefinitions="Auto">
 
-                            <!-- Barevný kruh s emoji ikonou (pin marker stejny jako na webu) -->
-                            <Border Grid.Column="0" Grid.RowSpan="4"
+                            <!-- Barevný kruh s emoji ikonou -->
+                            <Border Grid.Column="0"
                                     WidthRequest="32" HeightRequest="32"
                                     StrokeThickness="0"
                                     VerticalOptions="Start" Margin="0,2,0,0"
@@ -187,47 +187,59 @@
                                        VerticalOptions="Center" />
                             </Border>
 
-                            <!-- Název -->
-                            <Label Grid.Column="2" Grid.Row="0"
-                                   Text="{Binding Name}"
-                                   FontAttributes="Bold" FontSize="14" TextColor="#1A1A1A"
-                                   LineBreakMode="TailTruncation" />
-                            <!-- Typ + vzdálenost na jednom řádku -->
-                            <HorizontalStackLayout Grid.Column="2" Grid.Row="1"
-                                                   Spacing="6" VerticalOptions="Center">
-                                <HorizontalStackLayout IsVisible="{Binding HasDistance}"
-                                                       Spacing="3" VerticalOptions="Center">
-                                    <Image Source="ic_ruler.svg"
-                                           WidthRequest="12" HeightRequest="12"
-                                           VerticalOptions="Center" />
+                            <!-- Textový obsah – vnořený Grid se zarovnaným sloupcem ikon -->
+                            <Grid Grid.Column="2"
+                                  ColumnDefinitions="16,*"
+                                  RowDefinitions="Auto,Auto,Auto,Auto"
+                                  RowSpacing="1">
+
+                                <!-- Název (přes oba sloupce) -->
+                                <Label Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="0"
+                                       Text="{Binding Name}"
+                                       FontAttributes="Bold" FontSize="14" TextColor="#1A1A1A"
+                                       LineBreakMode="TailTruncation" />
+
+                                <!-- Ikona vzdálenosti -->
+                                <Image Grid.Column="0" Grid.Row="1"
+                                       Source="ic_ruler.svg"
+                                       WidthRequest="12" HeightRequest="12"
+                                       IsVisible="{Binding HasDistance}"
+                                       VerticalOptions="Center" HorizontalOptions="Start" />
+                                <!-- Vzdálenost + typ -->
+                                <HorizontalStackLayout Grid.Column="1" Grid.Row="1"
+                                                       Spacing="6" VerticalOptions="Center">
                                     <Label Text="{Binding DistanceText}"
+                                           IsVisible="{Binding HasDistance}"
                                            FontSize="11" TextColor="#1d4ed8" FontAttributes="Bold"
                                            VerticalOptions="Center" />
+                                    <Label Text="{Binding Type, Converter={StaticResource TypeLabelConverter}}"
+                                           FontSize="11" TextColor="#777777"
+                                           CharacterSpacing="0.3" TextTransform="Uppercase"
+                                           VerticalOptions="Center" />
                                 </HorizontalStackLayout>
-                                <Label Text="{Binding Type, Converter={StaticResource TypeLabelConverter}}"
-                                       FontSize="11" TextColor="#777777"
-                                       CharacterSpacing="0.3" TextTransform="Uppercase"
+
+                                <!-- Ikona adresy -->
+                                <Label Grid.Column="0" Grid.Row="2"
+                                       Text="📍"
+                                       FontSize="11"
+                                       IsVisible="{Binding Address, Converter={StaticResource StringNotEmptyConverter}}"
                                        VerticalOptions="Center" />
-                            </HorizontalStackLayout>
-                            <!-- Adresa -->
-                            <Label Grid.Column="2" Grid.Row="2"
-                                   FontSize="12" TextColor="#444444"
-                                   IsVisible="{Binding Address, Converter={StaticResource StringNotEmptyConverter}}"
-                                   LineBreakMode="TailTruncation">
-                                <Label.FormattedText>
-                                    <FormattedString>
-                                        <Span Text="📍 " />
-                                        <Span Text="{Binding Address}" />
-                                    </FormattedString>
-                                </Label.FormattedText>
-                            </Label>
-                            <!-- Souřadnice -->
-                            <HorizontalStackLayout Grid.Column="2" Grid.Row="3"
-                                                   Spacing="3" VerticalOptions="Center">
-                                <Image Source="ic_mappin.svg"
+                                <!-- Adresa -->
+                                <Label Grid.Column="1" Grid.Row="2"
+                                       Text="{Binding Address}"
+                                       FontSize="12" TextColor="#444444"
+                                       IsVisible="{Binding Address, Converter={StaticResource StringNotEmptyConverter}}"
+                                       LineBreakMode="TailTruncation"
+                                       VerticalOptions="Center" />
+
+                                <!-- Ikona souřadnic -->
+                                <Image Grid.Column="0" Grid.Row="3"
+                                       Source="ic_mappin.svg"
                                        WidthRequest="10" HeightRequest="10"
-                                       VerticalOptions="Center" />
-                                <Label FontSize="10" TextColor="#999999"
+                                       VerticalOptions="Center" HorizontalOptions="Start" />
+                                <!-- Souřadnice -->
+                                <Label Grid.Column="1" Grid.Row="3"
+                                       FontSize="10" TextColor="#999999"
                                        FontFamily="Monospace" VerticalOptions="Center">
                                     <Label.FormattedText>
                                         <FormattedString>
@@ -237,7 +249,8 @@
                                         </FormattedString>
                                     </Label.FormattedText>
                                 </Label>
-                            </HorizontalStackLayout>
+
+                            </Grid>
                         </Grid>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>

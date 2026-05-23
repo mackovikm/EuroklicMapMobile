@@ -230,9 +230,7 @@
         color: '#c2410c', weight: 2,
         fillColor: '#f97316', fillOpacity: 0.85,
         bubblingMouseEvents: false
-      }).addTo(map)
-        .bindPopup('Aktuální bod (zvolený kliknutím)')
-        .openPopup();
+      }).addTo(map);
       map.panTo([e.latlng.lat, e.latlng.lng]);
 
       // Informuj MAUI o novém referenčním bodu pro výpočet vzdáleností
