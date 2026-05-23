@@ -195,10 +195,6 @@
                             <!-- Typ + vzdálenost na jednom řádku -->
                             <HorizontalStackLayout Grid.Column="2" Grid.Row="1"
                                                    Spacing="8" VerticalOptions="Center">
-                                <Label Text="{Binding Type, Converter={StaticResource TypeLabelConverter}}"
-                                       FontSize="11" TextColor="#777777"
-                                       CharacterSpacing="0.3" TextTransform="Uppercase"
-                                       VerticalOptions="Center" />
                                 <Label IsVisible="{Binding HasDistance}"
                                        FontSize="11" TextColor="#1d4ed8" FontAttributes="Bold"
                                        VerticalOptions="Center">
@@ -209,6 +205,10 @@
                                         </FormattedString>
                                     </Label.FormattedText>
                                 </Label>
+                                <Label Text="{Binding Type, Converter={StaticResource TypeLabelConverter}}"
+                                       FontSize="11" TextColor="#777777"
+                                       CharacterSpacing="0.3" TextTransform="Uppercase"
+                                       VerticalOptions="Center" />
                             </HorizontalStackLayout>
                             <!-- Adresa -->
                             <Label Grid.Column="2" Grid.Row="2"
