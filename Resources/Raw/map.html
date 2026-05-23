@@ -220,7 +220,7 @@
       try { window.location.href = url; } catch(_) {}
     }
 
-    /* ── Klik do mapy → oranžový bod + vycentrování (stejně jako web) ── */
+    /* ── Klik do mapy → oranžový bod + vycentrování + notifikace MAUI ── */
     map.on('click', function(e) {
       if (clickMarker) map.removeLayer(clickMarker);
       clickMarker = L.circleMarker([e.latlng.lat, e.latlng.lng], {
@@ -232,6 +232,12 @@
         .bindPopup('Aktuální bod (zvolený kliknutím)')
         .openPopup();
       map.panTo([e.latlng.lat, e.latlng.lng]);
+
+      // Informuj MAUI o novém referenčním bodu pro výpočet vzdáleností
+      try {
+        window.location.href = 'maui://location?lat=' + e.latlng.lat.toFixed(6)
+                             + '&lng=' + e.latlng.lng.toFixed(6);
+      } catch(_) {}
     });
 
     map.on('moveend', notifyBounds);

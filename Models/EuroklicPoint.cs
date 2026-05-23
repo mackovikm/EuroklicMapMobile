@@ -18,4 +18,15 @@ public class EuroklicPoint
     public string? Type        { get; set; }
     public string? IconUrl     { get; set; }
     public string? Address     { get; set; }
+
+    /// <summary>Vzdálenost od referenčního bodu v km – nepersistováno, počítáno za běhu.</summary>
+    [Ignore] public double? DistanceKm { get; set; }
+
+    [Ignore] public string DistanceText => DistanceKm.HasValue
+        ? (DistanceKm.Value < 1
+            ? $"{(int)(DistanceKm.Value * 1000)} m"
+            : $"{DistanceKm.Value:F1} km")
+        : string.Empty;
+
+    [Ignore] public bool HasDistance => DistanceKm.HasValue;
 }

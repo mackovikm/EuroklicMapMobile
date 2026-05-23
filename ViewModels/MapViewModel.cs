@@ -14,6 +14,7 @@ public class MapViewModel : BaseViewModel
     private List<EuroklicPoint> _visiblePoints = [];
     private List<string> _availTypes = [];
     private double? _boundsN, _boundsS, _boundsE, _boundsW;
+    private double? _refLat, _refLng;   // referenční bod pro výpočet vzdálenosti
     private string _searchText = string.Empty;
     private string? _selectedType;
     private string _pointCountText = string.Empty;
@@ -122,17 +123,56 @@ public class MapViewModel : BaseViewModel
         RefreshVisible();
     }
 
-    /// <summary>Přefiltruje _filteredPoints podle aktuálního výřezu mapy.</summary>
+    /// <summary>
+    /// Nastaví referenční bod pro výpočet vzdálenosti (GPS nebo klik do mapy).
+    /// </summary>
+    public void SetCurrentLocation(double? lat, double? lng)
+    {
+        _refLat = lat;
+        _refLng = lng;
+        RefreshVisible();
+    }
+
+    /// <summary>Přefiltruje _filteredPoints podle aktuálního výřezu mapy a seřadí dle vzdálenosti.</summary>
     private void RefreshVisible()
     {
-        _visiblePoints = _boundsN.HasValue
+        IEnumerable<EuroklicPoint> result = _boundsN.HasValue
             ? _filteredPoints.Where(p =>
                 p.Latitude  >= _boundsS!.Value && p.Latitude  <= _boundsN!.Value &&
-                p.Longitude >= _boundsW!.Value && p.Longitude <= _boundsE!.Value).ToList()
-            : _filteredPoints.ToList();
+                p.Longitude >= _boundsW!.Value && p.Longitude <= _boundsE!.Value)
+            : _filteredPoints;
+
+        // Výpočet vzdálenosti a třídění
+        if (_refLat.HasValue && _refLng.HasValue)
+        {
+            var refLat = _refLat.Value;
+            var refLng = _refLng.Value;
+            var withDist = result.Select(p =>
+            {
+                p.DistanceKm = HaversineKm(refLat, refLng, p.Latitude, p.Longitude);
+                return p;
+            }).OrderBy(p => p.DistanceKm).ToList();
+            _visiblePoints = withDist;
+        }
+        else
+        {
+            foreach (var p in result) p.DistanceKm = null;
+            _visiblePoints = result.ToList();
+        }
 
         OnPropertyChanged(nameof(VisiblePoints));
         OnPropertyChanged(nameof(VisibleCountText));
+    }
+
+    private static double HaversineKm(double lat1, double lng1, double lat2, double lng2)
+    {
+        const double R = 6371;
+        var dLat = (lat2 - lat1) * Math.PI / 180;
+        var dLng = (lng2 - lng1) * Math.PI / 180;
+        var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2)
+              + Math.Cos(lat1 * Math.PI / 180) * Math.Cos(lat2 * Math.PI / 180)
+              * Math.Sin(dLng / 2) * Math.Sin(dLng / 2);
+        return R * 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
     }
 
     /// <summary>Vrátí JSON filtrovaných bodů pro Leaflet.</summary>

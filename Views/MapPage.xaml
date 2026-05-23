@@ -192,11 +192,24 @@
                                    Text="{Binding Name}"
                                    FontAttributes="Bold" FontSize="14" TextColor="#1A1A1A"
                                    LineBreakMode="TailTruncation" />
-                            <!-- Typ -->
-                            <Label Grid.Column="2" Grid.Row="1"
-                                   Text="{Binding Type, Converter={StaticResource TypeLabelConverter}}"
-                                   FontSize="11" TextColor="#777777"
-                                   CharacterSpacing="0.3" TextTransform="Uppercase" />
+                            <!-- Typ + vzdálenost na jednom řádku -->
+                            <HorizontalStackLayout Grid.Column="2" Grid.Row="1"
+                                                   Spacing="8" VerticalOptions="Center">
+                                <Label Text="{Binding Type, Converter={StaticResource TypeLabelConverter}}"
+                                       FontSize="11" TextColor="#777777"
+                                       CharacterSpacing="0.3" TextTransform="Uppercase"
+                                       VerticalOptions="Center" />
+                                <Label IsVisible="{Binding HasDistance}"
+                                       FontSize="11" TextColor="#1d4ed8" FontAttributes="Bold"
+                                       VerticalOptions="Center">
+                                    <Label.FormattedText>
+                                        <FormattedString>
+                                            <Span Text="📏 " />
+                                            <Span Text="{Binding DistanceText}" />
+                                        </FormattedString>
+                                    </Label.FormattedText>
+                                </Label>
+                            </HorizontalStackLayout>
                             <!-- Adresa -->
                             <Label Grid.Column="2" Grid.Row="2"
                                    Text="{Binding Address}"

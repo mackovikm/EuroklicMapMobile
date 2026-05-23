@@ -54,6 +54,24 @@ public partial class MapPage : ContentPage
         if (!e.Url.StartsWith("maui://", StringComparison.OrdinalIgnoreCase)) return;
         e.Cancel = true;
 
+        // maui://location?lat=...&lng=...  → referenční bod pro vzdálenost (GPS nebo klik)
+        if (e.Url.StartsWith("maui://location?", StringComparison.OrdinalIgnoreCase))
+        {
+            var query = e.Url["maui://location?".Length..];
+            var dict = query.Split('&')
+                .Select(part => part.Split('='))
+                .Where(kv => kv.Length == 2)
+                .ToDictionary(kv => kv[0], kv => kv[1]);
+
+            var ci = System.Globalization.CultureInfo.InvariantCulture;
+            if (double.TryParse(dict.GetValueOrDefault("lat"), System.Globalization.NumberStyles.Float, ci, out var lat) &&
+                double.TryParse(dict.GetValueOrDefault("lng"), System.Globalization.NumberStyles.Float, ci, out var lng))
+            {
+                _vm.SetCurrentLocation(lat, lng);
+            }
+            return;
+        }
+
         // maui://bounds?n=...&s=...&e=...&w=...  → aktualizuj seznam viditelných bodů
         if (e.Url.StartsWith("maui://bounds?", StringComparison.OrdinalIgnoreCase))
         {
@@ -137,6 +155,8 @@ public partial class MapPage : ContentPage
 
             var lat = location.Latitude .ToString("F6", System.Globalization.CultureInfo.InvariantCulture);
             var lng = location.Longitude.ToString("F6", System.Globalization.CultureInfo.InvariantCulture);
+
+            _vm.SetCurrentLocation(location.Latitude, location.Longitude);
 
             await MainThread.InvokeOnMainThreadAsync(async () =>
                 await MapWebView.EvaluateJavaScriptAsync($"centerOnGps({lat}, {lng})"));
