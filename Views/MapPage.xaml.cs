@@ -54,11 +54,19 @@ public partial class MapPage : ContentPage
         if (!e.Url.StartsWith("maui://", StringComparison.OrdinalIgnoreCase)) return;
         e.Cancel = true;
 
-        // maui://copy?text=...  → zkopíruj text do schránky + zobraz toast
+        // maui://copy?type=address|coords&text=...  → zkopíruj text do schránky + zobraz toast
         if (e.Url.StartsWith("maui://copy?", StringComparison.OrdinalIgnoreCase))
         {
-            var raw  = e.Url["maui://copy?text=".Length..];
-            var text = Uri.UnescapeDataString(raw);
+            var query = e.Url["maui://copy?".Length..];
+            var dict  = query.Split('&')
+                .Select(p => p.Split('=', 2))
+                .Where(kv => kv.Length == 2)
+                .ToDictionary(kv => kv[0], kv => Uri.UnescapeDataString(kv[1]));
+
+            var text = dict.GetValueOrDefault("text", "");
+            var type = dict.GetValueOrDefault("type", "");
+            var msg  = type == "coords" ? "GPS souřadnice zkopírovány" : "Adresa zkopírována";
+
             if (!string.IsNullOrEmpty(text))
                 MainThread.BeginInvokeOnMainThread(async () =>
                 {
@@ -66,7 +74,7 @@ public partial class MapPage : ContentPage
 #if ANDROID
                     Android.Widget.Toast.MakeText(
                         Android.App.Application.Context,
-                        "Adresa zkopírována",
+                        msg,
                         Android.Widget.ToastLength.Short)?.Show();
 #endif
                 });

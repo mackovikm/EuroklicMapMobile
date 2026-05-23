@@ -39,7 +39,7 @@
                 <Grid ColumnDefinitions="*,Auto">
                     <Entry Grid.Column="0"
                            x:Name="SearchEntry"
-                           Placeholder="Hledat (název, popis nebo adresu)..."
+                           Placeholder="Filtrovat v seznamu bodů (název, popis, adresa)..."
                            PlaceholderColor="#9E9E9E"
                            TextColor="#1A1A1A"
                            Text="{Binding SearchText}"
@@ -65,7 +65,7 @@
 
             <!-- Tlačítko Hledat -->
             <Button Grid.Column="1"
-                    Text="Hledat"
+                    Text="Najdi na mapě"
                     Clicked="OnSearchButtonPressed"
                     FontSize="13"
                     HeightRequest="38"
@@ -230,7 +230,6 @@
                                        FontSize="12" TextColor="#444444"
                                        IsVisible="{Binding Address, Converter={StaticResource StringNotEmptyConverter}}"
                                        LineBreakMode="TailTruncation"
-                                       StyleClass="CopyOnLongPress"
                                        VerticalOptions="Center" />
 
                                 <!-- Ikona souřadnic -->
@@ -243,7 +242,6 @@
                                        Text="{Binding CoordinatesText}"
                                        FontSize="10" TextColor="#999999"
                                        FontFamily="Monospace"
-                                       StyleClass="CopyOnLongPress"
                                        VerticalOptions="Center" />
 
                             </Grid>

@@ -266,14 +266,14 @@
       var LONG_MS = 600;
       var _timer = null;
 
-      function attachCopy(el, getText) {
+      function attachCopy(el, getText, type) {
         el.addEventListener('contextmenu', function(e) { e.preventDefault(); return false; });
         el.addEventListener('touchstart', function(e) {
           _timer = setTimeout(function() {
             _timer = null;
             var text = getText();
             if (text) {
-              try { window.location.href = 'maui://copy?text=' + encodeURIComponent(text); } catch(_) {}
+              try { window.location.href = 'maui://copy?type=' + type + '&text=' + encodeURIComponent(text); } catch(_) {}
               el.style.opacity = '0.5';
               setTimeout(function() { el.style.opacity = ''; }, 300);
             }
@@ -288,8 +288,8 @@
         var node = ev.popup.getElement();
         var addrEl   = node.querySelector('.lf-popup-address');
         var coordsEl = node.querySelector('.lf-popup-coords');
-        if (addrEl)   attachCopy(addrEl,   function() { return addrEl.innerText.replace(/^[^\w]+/, '').trim(); });
-        if (coordsEl) attachCopy(coordsEl, function() { return coordsEl.innerText.trim(); });
+        if (addrEl)   attachCopy(addrEl,   function() { return addrEl.innerText.replace(/^[^\w]+/, '').trim(); }, 'address');
+        if (coordsEl) attachCopy(coordsEl, function() { return coordsEl.innerText.trim(); }, 'coords');
       });
     })();
 
