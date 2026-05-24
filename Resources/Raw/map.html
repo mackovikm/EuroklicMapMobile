@@ -243,6 +243,18 @@
     map.on('moveend', notifyBounds);
     map.on('zoomend', notifyBounds);
 
+    /* ── Navigace na geocodovanou adresu (oranžový marker, střed mapy) ── */
+    function navigateToAddress(lat, lng) {
+      if (clickMarker) map.removeLayer(clickMarker);
+      clickMarker = L.circleMarker([lat, lng], {
+        radius: 8,
+        color: '#c2410c', weight: 2,
+        fillColor: '#f97316', fillOpacity: 0.85,
+        bubblingMouseEvents: false
+      }).addTo(map);
+      map.setView([lat, lng], 15, { animate: true, duration: 0.8 });
+    }
+
     /* ── GPS: vystred mapu na uzivatelovu polohu ── */
     function centerOnGps(lat, lng) {
       window._gpsSet = true;

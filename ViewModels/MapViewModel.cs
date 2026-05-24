@@ -21,6 +21,12 @@ public class MapViewModel : BaseViewModel
     private bool _isPanelExpanded;
     private bool _initialized;
 
+    /// <summary>
+    /// True = poslední hledání bylo geocoding adresy → ignoruj SearchText jako textový filtr.
+    /// Resetuje se při psaní nebo stisku Enter v poli.
+    /// </summary>
+    public bool LastSearchWasAddress { get; set; }
+
     // ── Verejne vlastnosti ──────────────────────────────────────────────────
 
     public string SearchText
@@ -92,7 +98,8 @@ public class MapViewModel : BaseViewModel
     {
         IEnumerable<EuroklicPoint> result = _points;
 
-        if (!string.IsNullOrWhiteSpace(_searchText))
+        // Ignoruj textový filtr pokud poslední akce byla geocoding adresy
+        if (!LastSearchWasAddress && !string.IsNullOrWhiteSpace(_searchText))
         {
             var q = _searchText.ToLowerInvariant();
             result = result.Where(p =>

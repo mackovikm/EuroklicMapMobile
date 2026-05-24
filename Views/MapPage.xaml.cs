@@ -1,3 +1,4 @@
+using System.Text.Json;
 using EuroklicMapMobile.ViewModels;
 
 namespace EuroklicMapMobile.Views;
@@ -5,6 +6,7 @@ namespace EuroklicMapMobile.Views;
 public partial class MapPage : ContentPage
 {
     private readonly MapViewModel _vm;
+    private readonly HttpClient _http;
     private bool _mapLoaded;
     private CancellationTokenSource? _searchCts;
 
@@ -16,10 +18,11 @@ public partial class MapPage : ContentPage
     private static readonly Color ChipActiveBorder   = Color.FromArgb("#1565C0");
     private static readonly Color ChipInactiveBorder  = Color.FromArgb("#BDBDBD");
 
-    public MapPage(MapViewModel vm)
+    public MapPage(MapViewModel vm, HttpClient http)
     {
         InitializeComponent();
         _vm = vm;
+        _http = http;
         BindingContext = vm;
 
         vm.DataRefreshed += async (_, _) => await RefreshAll();
@@ -131,6 +134,8 @@ public partial class MapPage : ContentPage
 
     private async void OnSearchTextChanged(object? sender, TextChangedEventArgs e)
     {
+        // Psaní ruší geocoding – text slouží jako obyčejný filtr
+        _vm.LastSearchWasAddress = false;
         _searchCts?.Cancel();
         _searchCts = new CancellationTokenSource();
         var token = _searchCts.Token;
@@ -142,14 +147,57 @@ public partial class MapPage : ContentPage
         catch (OperationCanceledException) { }
     }
 
+    /// <summary>
+    /// Tlačítko „Najdi na mapě" – geocoduje zadaný text.
+    /// Pokud adresa nalezena: vycentruje mapu, nastaví referenční bod, ignoruje text jako filtr.
+    /// Pokud nenalezena: použije text jako normální filtr bodů.
+    /// </summary>
     private async void OnSearchButtonPressed(object? sender, EventArgs e)
     {
         _searchCts?.Cancel();
+
+        var query = _vm.SearchText.Trim();
+        if (string.IsNullOrEmpty(query))
+        {
+            _vm.LastSearchWasAddress = false;
+            await RefreshAll();
+            return;
+        }
+
+        try
+        {
+            var result = await GeocodeAddressAsync(query);
+
+            if (result is not null)
+            {
+                // Adresa nalezena → střed mapy na ni, nastav referenční bod, ignoruj text jako filtr
+                _vm.LastSearchWasAddress = true;
+                _vm.SetCurrentLocation(result.Lat, result.Lng);
+
+                var lat = result.Lat.ToString("F6", System.Globalization.CultureInfo.InvariantCulture);
+                var lng = result.Lng.ToString("F6", System.Globalization.CultureInfo.InvariantCulture);
+                await MainThread.InvokeOnMainThreadAsync(async () =>
+                    await MapWebView.EvaluateJavaScriptAsync($"navigateToAddress({lat}, {lng})"));
+            }
+            else
+            {
+                // Adresa nenalezena → použij text jako filtr
+                _vm.LastSearchWasAddress = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Geocoding chyba: {ex.Message}");
+            _vm.LastSearchWasAddress = false;
+        }
+
         await RefreshAll();
     }
 
     private async void OnSearchCompleted(object? sender, EventArgs e)
     {
+        // Enter v poli = normální textový filtr, ne geocoding
+        _vm.LastSearchWasAddress = false;
         _searchCts?.Cancel();
         await RefreshAll();
     }
@@ -157,6 +205,7 @@ public partial class MapPage : ContentPage
     private async void OnClearSearchClicked(object? sender, EventArgs e)
     {
         _searchCts?.Cancel();
+        _vm.LastSearchWasAddress = false;
         _vm.SearchText = string.Empty;
         await RefreshAll();
     }
@@ -192,6 +241,36 @@ public partial class MapPage : ContentPage
         {
             System.Diagnostics.Debug.WriteLine($"GPS chyba: {ex.Message}");
         }
+    }
+
+    // ── Geocoding (Nominatim) ─────────────────────────────────────────────────
+
+    private record GeocodedAddress(double Lat, double Lng, string DisplayName);
+
+    private async Task<GeocodedAddress?> GeocodeAddressAsync(string query)
+    {
+        var url = "https://nominatim.openstreetmap.org/search"
+                + $"?q={Uri.EscapeDataString(query)}"
+                + "&format=jsonv2&limit=1&addressdetails=1&accept-language=cs";
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Add("User-Agent", "EuroklicMapMobile/1.0");
+
+        var response = await _http.SendAsync(request);
+        if (!response.IsSuccessStatusCode) return null;
+
+        var json = await response.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+        if (root.GetArrayLength() == 0) return null;
+
+        var first = root[0];
+        var ci = System.Globalization.CultureInfo.InvariantCulture;
+        var lat = double.Parse(first.GetProperty("lat").GetString()!, ci);
+        var lng = double.Parse(first.GetProperty("lon").GetString()!, ci);
+        var displayName = first.GetProperty("display_name").GetString() ?? query;
+
+        return new GeocodedAddress(lat, lng, displayName);
     }
 
     // ── Chipy typů ───────────────────────────────────────────────────────────
